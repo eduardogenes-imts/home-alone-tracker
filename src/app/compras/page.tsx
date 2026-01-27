@@ -19,7 +19,36 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { FormField } from '@/components/ui/form-field';
+import { Select } from '@/components/ui/select';
+import { MoneyInput } from '@/components/ui/money-input';
+
+// Opções para os selects
+const categoriaOptions = [
+  { value: 'cozinha', label: 'Cozinha', icon: '🍳' },
+  { value: 'quarto', label: 'Quarto', icon: '🛏️' },
+  { value: 'banheiro', label: 'Banheiro', icon: '🛁' },
+  { value: 'casa', label: 'Casa', icon: '🏠' },
+];
+
+const faseOptions = [
+  { value: 'pre-mudanca', label: 'Pré-mudança' },
+  { value: 'pos-mudanca', label: 'Pós-mudança' },
+];
+
+const prioridadeOptions = [
+  { value: 'essencial', label: 'Essencial' },
+  { value: 'alta', label: 'Alta' },
+  { value: 'media', label: 'Média' },
+  { value: 'baixa', label: 'Baixa' },
+];
+
+const statusOptions = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'pesquisando', label: 'Pesquisando' },
+  { value: 'poupando', label: 'Poupando' },
+  { value: 'comprado', label: 'Comprado' },
+];
 
 export default function ComprasPage() {
   const { itens, adicionarPoupanca, marcarComoComprado, updateItem, addItem, deleteItem, isLoaded } = useApp();
@@ -28,7 +57,8 @@ export default function ComprasPage() {
   const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaItem | 'todas'>('todas');
   const [statusAtivo, setStatusAtivo] = useState<StatusItem | 'todos'>('todos');
   const [dialogAberto, setDialogAberto] = useState(false);
-  
+  const [saving, setSaving] = useState(false);
+
   const [novoItem, setNovoItem] = useState({
     nome: '',
     categoria: 'cozinha' as CategoriaItem,
@@ -44,36 +74,41 @@ export default function ComprasPage() {
     ordem: 0,
   });
 
-  const handleAdicionarItem = () => {
+  const handleAdicionarItem = async () => {
     if (!novoItem.nome.trim()) return;
-    
-    // Calcula a ordem (último da categoria + 1)
-    const itensDaCategoria = itens.filter(i => i.categoria === novoItem.categoria && i.fase === novoItem.fase);
-    const maiorOrdem = itensDaCategoria.length > 0
-      ? Math.max(...itensDaCategoria.map(i => i.ordem))
-      : 0;
-    
-    addItem({
-      ...novoItem,
-      ordem: maiorOrdem + 1,
-    });
-    
-    // Reset form
-    setNovoItem({
-      nome: '',
-      categoria: 'cozinha',
-      fase: 'pre-mudanca',
-      prioridade: 'essencial',
-      valorMinimo: null,
-      valorMaximo: null,
-      valorReal: null,
-      valorPoupado: 0,
-      status: 'pendente',
-      dataCompra: null,
-      observacao: null,
-      ordem: 0,
-    });
-    setDialogAberto(false);
+
+    setSaving(true);
+    try {
+      // Calcula a ordem (último da categoria + 1)
+      const itensDaCategoria = itens.filter(i => i.categoria === novoItem.categoria && i.fase === novoItem.fase);
+      const maiorOrdem = itensDaCategoria.length > 0
+        ? Math.max(...itensDaCategoria.map(i => i.ordem))
+        : 0;
+
+      addItem({
+        ...novoItem,
+        ordem: maiorOrdem + 1,
+      });
+
+      // Reset form
+      setNovoItem({
+        nome: '',
+        categoria: 'cozinha',
+        fase: 'pre-mudanca',
+        prioridade: 'essencial',
+        valorMinimo: null,
+        valorMaximo: null,
+        valorReal: null,
+        valorPoupado: 0,
+        status: 'pendente',
+        dataCompra: null,
+        observacao: null,
+        ordem: 0,
+      });
+      setDialogAberto(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const itensFiltrados = useMemo(() => {
@@ -130,7 +165,7 @@ export default function ComprasPage() {
             Lista de Compras
           </h1>
           <p className="text-slate-500 dark:text-slate-400">
-            Acompanhe os itens que voce precisa comprar
+            Acompanhe os itens que você precisa comprar
           </p>
         </div>
 
@@ -139,7 +174,7 @@ export default function ComprasPage() {
           <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
             <DialogTrigger asChild>
               <Button size="sm" className="flex">
-                <Plus className="h-4 w-4 sm:mr-1" />
+                <Plus className="h-4 w-4 sm:mr-1" aria-hidden="true" />
                 <span className="hidden sm:inline">Adicionar Item</span>
               </Button>
             </DialogTrigger>
@@ -151,131 +186,73 @@ export default function ComprasPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-5 py-4">
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Nome do Item <span className="text-rose-500">*</span>
-                  </label>
-                  <Input
-                    value={novoItem.nome}
-                    onChange={(e) => setNovoItem({ ...novoItem, nome: e.target.value })}
-                    placeholder="Ex: Geladeira, Fogão..."
-                    className="w-full"
+                <FormField
+                  label="Nome do Item"
+                  required
+                  value={novoItem.nome}
+                  onChange={(e) => setNovoItem({ ...novoItem, nome: e.target.value })}
+                  placeholder="Ex: Geladeira, Fogão..."
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    label="Categoria"
+                    value={novoItem.categoria}
+                    onChange={(e) => setNovoItem({ ...novoItem, categoria: e.target.value as CategoriaItem })}
+                    options={categoriaOptions}
+                  />
+                  <Select
+                    label="Fase"
+                    value={novoItem.fase}
+                    onChange={(e) => setNovoItem({ ...novoItem, fase: e.target.value as FaseItem })}
+                    options={faseOptions}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Categoria
-                    </label>
-                    <select
-                      value={novoItem.categoria}
-                      onChange={(e) => setNovoItem({ ...novoItem, categoria: e.target.value as CategoriaItem })}
-                      className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="cozinha">🍳 Cozinha</option>
-                      <option value="quarto">🛏️ Quarto</option>
-                      <option value="banheiro">🛁 Banheiro</option>
-                      <option value="casa">🏠 Casa</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Fase
-                    </label>
-                    <select
-                      value={novoItem.fase}
-                      onChange={(e) => setNovoItem({ ...novoItem, fase: e.target.value as FaseItem })}
-                      className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="pre-mudanca">Pré-mudança</option>
-                      <option value="pos-mudanca">Pós-mudança</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Prioridade
-                    </label>
-                    <select
-                      value={novoItem.prioridade}
-                      onChange={(e) => setNovoItem({ ...novoItem, prioridade: e.target.value as PrioridadeItem })}
-                      className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="essencial">Essencial</option>
-                      <option value="alta">Alta</option>
-                      <option value="media">Média</option>
-                      <option value="baixa">Baixa</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Status
-                    </label>
-                    <select
-                      value={novoItem.status}
-                      onChange={(e) => setNovoItem({ ...novoItem, status: e.target.value as StatusItem })}
-                      className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="pendente">Pendente</option>
-                      <option value="pesquisando">Pesquisando</option>
-                      <option value="poupando">Poupando</option>
-                      <option value="comprado">Comprado</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Valor Mínimo (opcional)
-                    </label>
-                    <Input
-                      type="number"
-                      value={novoItem.valorMinimo || ''}
-                      onChange={(e) => setNovoItem({ ...novoItem, valorMinimo: e.target.value ? Number(e.target.value) : null })}
-                      placeholder="Mínimo"
-                      step="0.01"
-                      min="0"
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Valor Máximo (opcional)
-                    </label>
-                    <Input
-                      type="number"
-                      value={novoItem.valorMaximo || ''}
-                      onChange={(e) => setNovoItem({ ...novoItem, valorMaximo: e.target.value ? Number(e.target.value) : null })}
-                      placeholder="Máximo"
-                      step="0.01"
-                      min="0"
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Observação (opcional)
-                  </label>
-                  <Input
-                    value={novoItem.observacao || ''}
-                    onChange={(e) => setNovoItem({ ...novoItem, observacao: e.target.value || null })}
-                    placeholder="Observações adicionais..."
-                    className="w-full"
+                  <Select
+                    label="Prioridade"
+                    value={novoItem.prioridade}
+                    onChange={(e) => setNovoItem({ ...novoItem, prioridade: e.target.value as PrioridadeItem })}
+                    options={prioridadeOptions}
+                  />
+                  <Select
+                    label="Status"
+                    value={novoItem.status}
+                    onChange={(e) => setNovoItem({ ...novoItem, status: e.target.value as StatusItem })}
+                    options={statusOptions}
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <MoneyInput
+                    label="Valor Mínimo"
+                    helperText="Opcional"
+                    value={novoItem.valorMinimo}
+                    onChange={(value) => setNovoItem({ ...novoItem, valorMinimo: value })}
+                  />
+                  <MoneyInput
+                    label="Valor Máximo"
+                    helperText="Opcional"
+                    value={novoItem.valorMaximo}
+                    onChange={(value) => setNovoItem({ ...novoItem, valorMaximo: value })}
+                  />
+                </div>
+
+                <FormField
+                  label="Observação"
+                  helperText="Modelo específico, loja preferida..."
+                  value={novoItem.observacao || ''}
+                  onChange={(e) => setNovoItem({ ...novoItem, observacao: e.target.value || null })}
+                  placeholder="Ex: Modelo Brastemp Frost Free 400L..."
+                />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogAberto(false)}>
+                <Button variant="outline" onClick={() => setDialogAberto(false)} disabled={saving}>
                   Cancelar
                 </Button>
-                <Button onClick={handleAdicionarItem} disabled={!novoItem.nome.trim()}>
-                  Adicionar Item
+                <Button onClick={handleAdicionarItem} disabled={!novoItem.nome.trim() || saving}>
+                  {saving ? 'Adicionando...' : 'Adicionar Item'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -285,7 +262,7 @@ export default function ComprasPage() {
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="md:hidden">
-                <Filter className="h-4 w-4 mr-1" />
+                <Filter className="h-4 w-4 mr-1" aria-hidden="true" />
                 Filtros
               </Button>
             </SheetTrigger>
@@ -313,7 +290,7 @@ export default function ComprasPage() {
         <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0" aria-hidden="true">
                 <Package className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
@@ -328,7 +305,7 @@ export default function ComprasPage() {
         <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0" aria-hidden="true">
                 <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
@@ -343,7 +320,7 @@ export default function ComprasPage() {
         <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0" aria-hidden="true">
                 <PiggyBank className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
@@ -358,7 +335,7 @@ export default function ComprasPage() {
         <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0" aria-hidden="true">
                 <Target className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
@@ -378,7 +355,7 @@ export default function ComprasPage() {
           <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800 sticky top-24">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center" aria-hidden="true">
                   <Filter className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                 </div>
                 Filtros
@@ -402,7 +379,7 @@ export default function ComprasPage() {
           {Object.entries(itensPorCategoria).length === 0 ? (
             <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800">
               <CardContent className="py-12 text-center">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center mb-4" aria-hidden="true">
                   <ShoppingBag className="h-8 w-8 text-slate-400" />
                 </div>
                 <p className="text-slate-500 dark:text-slate-400">
@@ -414,7 +391,7 @@ export default function ComprasPage() {
             Object.entries(itensPorCategoria).map(([categoria, itensCategoria]) => (
               <div key={categoria}>
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-3 text-slate-800 dark:text-slate-200">
-                  <span className="text-xl">
+                  <span className="text-xl" aria-hidden="true">
                     {categoria === 'cozinha' && '🍳'}
                     {categoria === 'quarto' && '🛏️'}
                     {categoria === 'banheiro' && '🛁'}

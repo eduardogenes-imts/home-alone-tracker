@@ -3,17 +3,21 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
+  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Item, StatusItem } from '@/types';
+import { FormField } from '@/components/ui/form-field';
+import { Select } from '@/components/ui/select';
+import { MoneyInput } from '@/components/ui/money-input';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Item, StatusItem, CategoriaItem, FaseItem, PrioridadeItem } from '@/types';
 import {
   formatarMoeda,
   calcularFaltaParaItem,
@@ -26,11 +30,6 @@ import {
 } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Plus, Check, PiggyBank, Package, Edit2, Trash2 } from 'lucide-react';
-import {
-  DialogDescription,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { CategoriaItem, FaseItem, PrioridadeItem } from '@/types';
 
 interface ItemCardProps {
   item: Item;
@@ -40,6 +39,33 @@ interface ItemCardProps {
   onUpdate?: (id: string, updates: Partial<Item>) => void;
   onDelete?: (id: string) => void;
 }
+
+// Opções para os selects
+const categoriaOptions = [
+  { value: 'cozinha', label: 'Cozinha', icon: '🍳' },
+  { value: 'quarto', label: 'Quarto', icon: '🛏️' },
+  { value: 'banheiro', label: 'Banheiro', icon: '🛁' },
+  { value: 'casa', label: 'Casa', icon: '🏠' },
+];
+
+const faseOptions = [
+  { value: 'pre-mudanca', label: 'Pré-mudança' },
+  { value: 'pos-mudanca', label: 'Pós-mudança' },
+];
+
+const prioridadeOptions = [
+  { value: 'essencial', label: 'Essencial' },
+  { value: 'alta', label: 'Alta' },
+  { value: 'media', label: 'Média' },
+  { value: 'baixa', label: 'Baixa' },
+];
+
+const statusOptions = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'pesquisando', label: 'Pesquisando' },
+  { value: 'poupando', label: 'Poupando' },
+  { value: 'comprado', label: 'Comprado' },
+];
 
 export function ItemCard({
   item,
@@ -52,12 +78,14 @@ export function ItemCard({
   const [dialogPoupanca, setDialogPoupanca] = useState(false);
   const [dialogComprado, setDialogComprado] = useState(false);
   const [dialogEditar, setDialogEditar] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [valorPoupanca, setValorPoupanca] = useState(50);
   const [valorCompra, setValorCompra] = useState(item.valorMaximo || item.valorMinimo || 0);
   const [modoPoupanca, setModoPoupanca] = useState<'adicionar' | 'editar'>('adicionar');
   const [valorPoupadoEditado, setValorPoupadoEditado] = useState(item.valorPoupado);
   const [valorRemover, setValorRemover] = useState(50);
-  
+  const [saving, setSaving] = useState(false);
+
   const [itemEditado, setItemEditado] = useState({
     nome: item.nome,
     categoria: item.categoria,
@@ -88,251 +116,216 @@ export function ItemCard({
   const valorAlvo = item.valorMaximo || item.valorMinimo || 0;
   const percentualPoupado = valorAlvo > 0 ? (item.valorPoupado / valorAlvo) * 100 : 0;
 
-  const handleAdicionarPoupanca = () => {
-    onAdicionarPoupanca(item.id, valorPoupanca);
-    setDialogPoupanca(false);
-    setValorPoupanca(50);
-    setModoPoupanca('adicionar');
-  };
-
-  const handleSalvarPoupanca = () => {
+  const handleSalvarPoupanca = async () => {
     if (!onUpdate) return;
-    
-    if (modoPoupanca === 'editar') {
-      // Atualiza o valor poupado diretamente
-      onUpdate(item.id, { valorPoupado: valorPoupadoEditado });
-    } else {
-      // Adiciona ao valor existente
-      onAdicionarPoupanca(item.id, valorPoupanca);
+
+    setSaving(true);
+    try {
+      if (modoPoupanca === 'editar') {
+        onUpdate(item.id, { valorPoupado: valorPoupadoEditado });
+      } else {
+        onAdicionarPoupanca(item.id, valorPoupanca);
+      }
+      setDialogPoupanca(false);
+      setValorPoupanca(50);
+      setModoPoupanca('adicionar');
+    } finally {
+      setSaving(false);
     }
-    
-    setDialogPoupanca(false);
-    setValorPoupanca(50);
-    setModoPoupanca('adicionar');
   };
 
   const handleRemoverPoupanca = () => {
     if (!onUpdate || valorPoupadoEditado <= 0 || valorRemover <= 0) return;
-    
     const novoValor = Math.max(0, valorPoupadoEditado - valorRemover);
     setValorPoupadoEditado(novoValor);
   };
 
-  const handleMarcarComprado = () => {
-    onMarcarComprado(item.id, valorCompra);
-    setDialogComprado(false);
+  const handleMarcarComprado = async () => {
+    setSaving(true);
+    try {
+      onMarcarComprado(item.id, valorCompra);
+      setDialogComprado(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleSalvarEdicao = () => {
+  const handleSalvarEdicao = async () => {
     if (!itemEditado.nome.trim() || !onUpdate) return;
-    
-    onUpdate(item.id, {
-      nome: itemEditado.nome,
-      categoria: itemEditado.categoria,
-      fase: itemEditado.fase,
-      prioridade: itemEditado.prioridade,
-      status: itemEditado.status,
-      valorMinimo: itemEditado.valorMinimo,
-      valorMaximo: itemEditado.valorMaximo,
-      observacao: itemEditado.observacao || null,
-    });
-    
-    setDialogEditar(false);
+
+    setSaving(true);
+    try {
+      onUpdate(item.id, {
+        nome: itemEditado.nome,
+        categoria: itemEditado.categoria,
+        fase: itemEditado.fase,
+        prioridade: itemEditado.prioridade,
+        status: itemEditado.status,
+        valorMinimo: itemEditado.valorMinimo,
+        valorMaximo: itemEditado.valorMaximo,
+        observacao: itemEditado.observacao || null,
+      });
+      setDialogEditar(false);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(item.id);
+    }
+    setConfirmDelete(false);
+  };
+
+  // Form de edição compartilhado
+  const EditForm = () => (
+    <div className="space-y-5 py-4">
+      <FormField
+        label="Nome do Item"
+        required
+        value={itemEditado.nome}
+        onChange={(e) => setItemEditado({ ...itemEditado, nome: e.target.value })}
+        placeholder="Ex: Geladeira, Fogão..."
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <Select
+          label="Categoria"
+          value={itemEditado.categoria}
+          onChange={(e) => setItemEditado({ ...itemEditado, categoria: e.target.value as CategoriaItem })}
+          options={categoriaOptions}
+        />
+        <Select
+          label="Fase"
+          value={itemEditado.fase}
+          onChange={(e) => setItemEditado({ ...itemEditado, fase: e.target.value as FaseItem })}
+          options={faseOptions}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Select
+          label="Prioridade"
+          value={itemEditado.prioridade}
+          onChange={(e) => setItemEditado({ ...itemEditado, prioridade: e.target.value as PrioridadeItem })}
+          options={prioridadeOptions}
+        />
+        <Select
+          label="Status"
+          value={itemEditado.status}
+          onChange={(e) => setItemEditado({ ...itemEditado, status: e.target.value as StatusItem })}
+          options={statusOptions}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <MoneyInput
+          label="Valor Mínimo"
+          helperText="Opcional"
+          value={itemEditado.valorMinimo}
+          onChange={(value) => setItemEditado({ ...itemEditado, valorMinimo: value })}
+        />
+        <MoneyInput
+          label="Valor Máximo"
+          helperText="Opcional"
+          value={itemEditado.valorMaximo}
+          onChange={(value) => setItemEditado({ ...itemEditado, valorMaximo: value })}
+        />
+      </div>
+
+      <FormField
+        label="Observação"
+        helperText="Modelo específico, loja preferida..."
+        value={itemEditado.observacao}
+        onChange={(e) => setItemEditado({ ...itemEditado, observacao: e.target.value })}
+        placeholder="Ex: Modelo Brastemp Frost Free 400L..."
+      />
+    </div>
+  );
 
   if (item.status === 'comprado') {
     return (
-      <Card className="border-0 shadow-sm bg-emerald-50 dark:bg-emerald-950/30 group">
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center">
-                <Check className="h-5 w-5 text-white" />
+      <>
+        <Card className="border-0 shadow-sm bg-emerald-50 dark:bg-emerald-950/30 group">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center" aria-hidden="true">
+                  <Check className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-emerald-700 dark:text-emerald-400">
+                    {item.nome}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {item.observacao || 'Comprado'}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-emerald-700 dark:text-emerald-400">
-                  {item.nome}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {item.observacao || 'Comprado'}
-                </p>
+              <div className="flex items-center gap-2">
+                {item.valorReal !== null && item.valorReal > 0 && (
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatarMoeda(item.valorReal)}
+                  </span>
+                )}
+                {onUpdate && (
+                  <Dialog open={dialogEditar} onOpenChange={setDialogEditar}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={`Editar ${item.nome}`}
+                      >
+                        <Edit2 className="h-3 w-3" aria-hidden="true" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Editar Item</DialogTitle>
+                        <DialogDescription>
+                          Edite as informações do item
+                        </DialogDescription>
+                      </DialogHeader>
+                      <EditForm />
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setDialogEditar(false)} disabled={saving}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleSalvarEdicao} disabled={!itemEditado.nome.trim() || saving}>
+                          {saving ? 'Salvando...' : 'Salvar Alterações'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Remover ${item.nome}`}
+                  >
+                    <Trash2 className="h-3 w-3" aria-hidden="true" />
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {item.valorReal !== null && item.valorReal > 0 && (
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                  {formatarMoeda(item.valorReal)}
-                </span>
-              )}
-              {onUpdate && (
-                <Dialog open={dialogEditar} onOpenChange={setDialogEditar}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Editar item"
-                    >
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Editar Item</DialogTitle>
-                      <DialogDescription>
-                        Edite as informações do item
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-5 py-4">
-                      <div>
-                        <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                          Nome do Item <span className="text-rose-500">*</span>
-                        </label>
-                        <Input
-                          value={itemEditado.nome}
-                          onChange={(e) => setItemEditado({ ...itemEditado, nome: e.target.value })}
-                          placeholder="Ex: Geladeira, Fogão..."
-                          className="w-full"
-                        />
-                      </div>
+          </CardContent>
+        </Card>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                            Categoria
-                          </label>
-                          <select
-                            value={itemEditado.categoria}
-                            onChange={(e) => setItemEditado({ ...itemEditado, categoria: e.target.value as CategoriaItem })}
-                            className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          >
-                            <option value="cozinha">🍳 Cozinha</option>
-                            <option value="quarto">🛏️ Quarto</option>
-                            <option value="banheiro">🛁 Banheiro</option>
-                            <option value="casa">🏠 Casa</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                            Fase
-                          </label>
-                          <select
-                            value={itemEditado.fase}
-                            onChange={(e) => setItemEditado({ ...itemEditado, fase: e.target.value as FaseItem })}
-                            className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          >
-                            <option value="pre-mudanca">Pré-mudança</option>
-                            <option value="pos-mudanca">Pós-mudança</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                            Prioridade
-                          </label>
-                          <select
-                            value={itemEditado.prioridade}
-                            onChange={(e) => setItemEditado({ ...itemEditado, prioridade: e.target.value as PrioridadeItem })}
-                            className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          >
-                            <option value="essencial">Essencial</option>
-                            <option value="alta">Alta</option>
-                            <option value="media">Média</option>
-                            <option value="baixa">Baixa</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                            Status
-                          </label>
-                          <select
-                            value={itemEditado.status}
-                            onChange={(e) => setItemEditado({ ...itemEditado, status: e.target.value as StatusItem })}
-                            className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          >
-                            <option value="pendente">Pendente</option>
-                            <option value="pesquisando">Pesquisando</option>
-                            <option value="poupando">Poupando</option>
-                            <option value="comprado">Comprado</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                            Valor Mínimo (opcional)
-                          </label>
-                          <Input
-                            type="number"
-                            value={itemEditado.valorMinimo || ''}
-                            onChange={(e) => setItemEditado({ ...itemEditado, valorMinimo: e.target.value ? Number(e.target.value) : null })}
-                            placeholder="Mínimo"
-                            step="0.01"
-                            min="0"
-                            className="w-full"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                            Valor Máximo (opcional)
-                          </label>
-                          <Input
-                            type="number"
-                            value={itemEditado.valorMaximo || ''}
-                            onChange={(e) => setItemEditado({ ...itemEditado, valorMaximo: e.target.value ? Number(e.target.value) : null })}
-                            placeholder="Máximo"
-                            step="0.01"
-                            min="0"
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                          Observação (opcional)
-                        </label>
-                        <Input
-                          value={itemEditado.observacao}
-                          onChange={(e) => setItemEditado({ ...itemEditado, observacao: e.target.value })}
-                          placeholder="Observações adicionais..."
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setDialogEditar(false)}>
-                        Cancelar
-                      </Button>
-                      <Button onClick={handleSalvarEdicao} disabled={!itemEditado.nome.trim()}>
-                        Salvar Alterações
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )}
-              {onDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => {
-                    if (confirm(`Tem certeza que deseja remover "${item.nome}"?`)) {
-                      onDelete(item.id);
-                    }
-                  }}
-                  className="text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Remover item"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <ConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title={`Remover "${item.nome}"?`}
+          description="Esta ação não pode ser desfeita. O item será removido permanentemente."
+          confirmLabel="Remover"
+          variant="danger"
+          onConfirm={handleDelete}
+        />
+      </>
     );
   }
 
@@ -361,9 +354,9 @@ export function ItemCard({
                           variant="ghost"
                           size="icon-xs"
                           className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Editar item"
+                          aria-label={`Editar ${item.nome}`}
                         >
-                          <Edit2 className="h-3 w-3" />
+                          <Edit2 className="h-3 w-3" aria-hidden="true" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -373,132 +366,13 @@ export function ItemCard({
                             Edite as informações do item
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-5 py-4">
-                          <div>
-                            <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                              Nome do Item <span className="text-rose-500">*</span>
-                            </label>
-                            <Input
-                              value={itemEditado.nome}
-                              onChange={(e) => setItemEditado({ ...itemEditado, nome: e.target.value })}
-                              placeholder="Ex: Geladeira, Fogão..."
-                              className="w-full"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                                Categoria
-                              </label>
-                              <select
-                                value={itemEditado.categoria}
-                                onChange={(e) => setItemEditado({ ...itemEditado, categoria: e.target.value as CategoriaItem })}
-                                className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              >
-                                <option value="cozinha">🍳 Cozinha</option>
-                                <option value="quarto">🛏️ Quarto</option>
-                                <option value="banheiro">🛁 Banheiro</option>
-                                <option value="casa">🏠 Casa</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                                Fase
-                              </label>
-                              <select
-                                value={itemEditado.fase}
-                                onChange={(e) => setItemEditado({ ...itemEditado, fase: e.target.value as FaseItem })}
-                                className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              >
-                                <option value="pre-mudanca">Pré-mudança</option>
-                                <option value="pos-mudanca">Pós-mudança</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                                Prioridade
-                              </label>
-                              <select
-                                value={itemEditado.prioridade}
-                                onChange={(e) => setItemEditado({ ...itemEditado, prioridade: e.target.value as PrioridadeItem })}
-                                className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              >
-                                <option value="essencial">Essencial</option>
-                                <option value="alta">Alta</option>
-                                <option value="media">Média</option>
-                                <option value="baixa">Baixa</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                                Status
-                              </label>
-                              <select
-                                value={itemEditado.status}
-                                onChange={(e) => setItemEditado({ ...itemEditado, status: e.target.value as StatusItem })}
-                                className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              >
-                                <option value="pendente">Pendente</option>
-                                <option value="pesquisando">Pesquisando</option>
-                                <option value="poupando">Poupando</option>
-                                <option value="comprado">Comprado</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                                Valor Mínimo (opcional)
-                              </label>
-                              <Input
-                                type="number"
-                                value={itemEditado.valorMinimo || ''}
-                                onChange={(e) => setItemEditado({ ...itemEditado, valorMinimo: e.target.value ? Number(e.target.value) : null })}
-                                placeholder="Mínimo"
-                                step="0.01"
-                                min="0"
-                                className="w-full"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                                Valor Máximo (opcional)
-                              </label>
-                              <Input
-                                type="number"
-                                value={itemEditado.valorMaximo || ''}
-                                onChange={(e) => setItemEditado({ ...itemEditado, valorMaximo: e.target.value ? Number(e.target.value) : null })}
-                                placeholder="Máximo"
-                                step="0.01"
-                                min="0"
-                                className="w-full"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                              Observação (opcional)
-                            </label>
-                            <Input
-                              value={itemEditado.observacao}
-                              onChange={(e) => setItemEditado({ ...itemEditado, observacao: e.target.value })}
-                              placeholder="Observações adicionais..."
-                              className="w-full"
-                            />
-                          </div>
-                        </div>
+                        <EditForm />
                         <DialogFooter>
-                          <Button variant="outline" onClick={() => setDialogEditar(false)}>
+                          <Button variant="outline" onClick={() => setDialogEditar(false)} disabled={saving}>
                             Cancelar
                           </Button>
-                          <Button onClick={handleSalvarEdicao} disabled={!itemEditado.nome.trim()}>
-                            Salvar Alterações
+                          <Button onClick={handleSalvarEdicao} disabled={!itemEditado.nome.trim() || saving}>
+                            {saving ? 'Salvando...' : 'Salvar Alterações'}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
@@ -517,15 +391,11 @@ export function ItemCard({
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    onClick={() => {
-                      if (confirm(`Tem certeza que deseja remover "${item.nome}"?`)) {
-                        onDelete(item.id);
-                      }
-                    }}
+                    onClick={() => setConfirmDelete(true)}
                     className="text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400"
-                    title="Remover item"
+                    aria-label={`Remover ${item.nome}`}
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3 w-3" aria-hidden="true" />
                   </Button>
                 )}
               </div>
@@ -546,14 +416,21 @@ export function ItemCard({
               <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <PiggyBank className="h-4 w-4 text-indigo-500" />
+                    <PiggyBank className="h-4 w-4 text-indigo-500" aria-hidden="true" />
                     Poupado
                   </span>
                   <span className="font-medium text-slate-700 dark:text-slate-300">
                     {formatarMoeda(item.valorPoupado)} / {formatarMoeda(valorAlvo)}
                   </span>
                 </div>
-                <div className="h-2.5 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
+                <div
+                  className="h-2.5 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={Math.min(percentualPoupado, 100)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${Math.round(percentualPoupado)}% poupado`}
+                >
                   <div
                     className="h-full bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-full transition-all"
                     style={{ width: `${Math.min(percentualPoupado, 100)}%` }}
@@ -573,7 +450,7 @@ export function ItemCard({
                 className="flex-1"
                 onClick={() => setDialogPoupanca(true)}
               >
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
                 Poupar
               </Button>
               <Button
@@ -581,7 +458,7 @@ export function ItemCard({
                 className="flex-1"
                 onClick={() => setDialogComprado(true)}
               >
-                <Package className="h-4 w-4 mr-1" />
+                <Package className="h-4 w-4 mr-1" aria-hidden="true" />
                 Comprei
               </Button>
             </div>
@@ -590,8 +467,8 @@ export function ItemCard({
       </Card>
 
       {/* Dialog de Poupanca */}
-      <Dialog 
-        open={dialogPoupanca} 
+      <Dialog
+        open={dialogPoupanca}
         onOpenChange={(open) => {
           setDialogPoupanca(open);
           if (open) {
@@ -621,12 +498,13 @@ export function ItemCard({
             </div>
 
             {/* Modo de operação */}
-            <div className="flex gap-2">
+            <div className="flex gap-2" role="group" aria-label="Modo de operação">
               <Button
                 variant={modoPoupanca === 'adicionar' ? 'default' : 'outline'}
                 size="sm"
                 className="flex-1"
                 onClick={() => setModoPoupanca('adicionar')}
+                aria-pressed={modoPoupanca === 'adicionar'}
               >
                 Adicionar
               </Button>
@@ -635,6 +513,7 @@ export function ItemCard({
                 size="sm"
                 className="flex-1"
                 onClick={() => setModoPoupanca('editar')}
+                aria-pressed={modoPoupanca === 'editar'}
               >
                 Editar Total
               </Button>
@@ -643,21 +522,13 @@ export function ItemCard({
             {/* Input baseado no modo */}
             {modoPoupanca === 'adicionar' ? (
               <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Valor a Adicionar
-                  </label>
-                  <Input
-                    type="number"
-                    value={valorPoupanca}
-                    onChange={(e) => setValorPoupanca(Number(e.target.value) || 0)}
-                    placeholder="Valor"
-                    step="0.01"
-                    min="0"
-                    className="bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div className="flex gap-2">
+                <MoneyInput
+                  label="Valor a Adicionar"
+                  value={valorPoupanca}
+                  onChange={(value) => setValorPoupanca(value || 0)}
+                  className="bg-white dark:bg-slate-800"
+                />
+                <div className="flex gap-2" role="group" aria-label="Valores rápidos">
                   {[50, 100, 200].map((v) => (
                     <Button
                       key={v}
@@ -665,6 +536,7 @@ export function ItemCard({
                       size="sm"
                       onClick={() => setValorPoupanca(v)}
                       className={valorPoupanca === v ? 'ring-2 ring-indigo-500' : ''}
+                      aria-pressed={valorPoupanca === v}
                     >
                       {formatarMoeda(v)}
                     </Button>
@@ -676,34 +548,19 @@ export function ItemCard({
               </div>
             ) : (
               <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Valor Total Poupado
-                  </label>
-                  <Input
-                    type="number"
-                    value={valorPoupadoEditado}
-                    onChange={(e) => setValorPoupadoEditado(Number(e.target.value) || 0)}
-                    placeholder="Valor total"
-                    step="0.01"
-                    min="0"
-                    className="bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Valor a Remover (opcional)
-                  </label>
-                  <Input
-                    type="number"
-                    value={valorRemover}
-                    onChange={(e) => setValorRemover(Number(e.target.value) || 0)}
-                    placeholder="Valor a remover"
-                    step="0.01"
-                    min="0"
-                    className="bg-white dark:bg-slate-800"
-                  />
-                </div>
+                <MoneyInput
+                  label="Valor Total Poupado"
+                  value={valorPoupadoEditado}
+                  onChange={(value) => setValorPoupadoEditado(value || 0)}
+                  className="bg-white dark:bg-slate-800"
+                />
+                <MoneyInput
+                  label="Valor a Remover"
+                  helperText="Opcional"
+                  value={valorRemover}
+                  onChange={(value) => setValorRemover(value || 0)}
+                  className="bg-white dark:bg-slate-800"
+                />
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -724,7 +581,7 @@ export function ItemCard({
                     Zerar
                   </Button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2" role="group" aria-label="Valores rápidos para remover">
                   {[50, 100, 200].map((v) => (
                     <Button
                       key={v}
@@ -732,6 +589,7 @@ export function ItemCard({
                       size="sm"
                       onClick={() => setValorRemover(v)}
                       className={valorRemover === v ? 'ring-2 ring-indigo-500' : ''}
+                      aria-pressed={valorRemover === v}
                     >
                       {formatarMoeda(v)}
                     </Button>
@@ -741,15 +599,16 @@ export function ItemCard({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogPoupanca(false)}>
+            <Button variant="outline" onClick={() => setDialogPoupanca(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleSalvarPoupanca}>
-              <PiggyBank className="h-4 w-4 mr-1" />
-              {modoPoupanca === 'adicionar' 
+            <Button onClick={handleSalvarPoupanca} disabled={saving}>
+              <PiggyBank className="h-4 w-4 mr-1" aria-hidden="true" />
+              {saving
+                ? 'Salvando...'
+                : modoPoupanca === 'adicionar'
                 ? `Adicionar ${formatarMoeda(valorPoupanca)}`
-                : 'Salvar Alterações'
-              }
+                : 'Salvar Alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -762,35 +621,46 @@ export function ItemCard({
             <DialogTitle className="text-slate-800 dark:text-slate-200">
               Marcar como Comprado
             </DialogTitle>
+            <DialogDescription>
+              Quanto você pagou em <strong className="text-slate-700 dark:text-slate-300">{item.nome}</strong>?
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-              Quanto voce pagou em <strong className="text-slate-700 dark:text-slate-300">{item.nome}</strong>?
-            </p>
-            <Input
-              type="number"
+          <div className="py-4 space-y-4">
+            <MoneyInput
+              label="Valor Pago"
+              required
               value={valorCompra}
-              onChange={(e) => setValorCompra(Number(e.target.value))}
-              placeholder="Valor pago"
+              onChange={(value) => setValorCompra(value || 0)}
               className="bg-white dark:bg-slate-800"
             />
             {item.valorPoupado > 0 && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
-                Voce tinha {formatarMoeda(item.valorPoupado)} poupado para este item.
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                Você tinha {formatarMoeda(item.valorPoupado)} poupado para este item.
               </p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogComprado(false)}>
+            <Button variant="outline" onClick={() => setDialogComprado(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleMarcarComprado} className="bg-emerald-600 hover:bg-emerald-700">
-              <Check className="h-4 w-4 mr-1" />
-              Confirmar Compra
+            <Button onClick={handleMarcarComprado} className="bg-emerald-600 hover:bg-emerald-700" disabled={saving}>
+              <Check className="h-4 w-4 mr-1" aria-hidden="true" />
+              {saving ? 'Confirmando...' : 'Confirmar Compra'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de confirmação de exclusão */}
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Remover "${item.nome}"?`}
+        description="Esta ação não pode ser desfeita. O item será removido permanentemente."
+        confirmLabel="Remover"
+        variant="danger"
+        onConfirm={handleDelete}
+      />
     </>
   );
 }

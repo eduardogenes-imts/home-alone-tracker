@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { GastoCard } from './GastoCard';
 import { GastoComCategoria, CategoriaGasto, Gasto, TipoGasto, FonteGasto } from '@/types';
 import { formatarMoeda } from '@/lib/calculations';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,8 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { FormField } from '@/components/ui/form-field';
+import { Select } from '@/components/ui/select';
+import { MoneyInput } from '@/components/ui/money-input';
 
 interface GastosSectionProps {
   gastos: GastoComCategoria[];
@@ -30,8 +32,9 @@ interface GastosSectionProps {
 
 export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, onDelete }: GastosSectionProps) {
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [categoriaSelecionada, setCategoriaSelecionada] = useState(categorias[0]?.id || '');
-  
+
   const [novoGasto, setNovoGasto] = useState({
     nome: '',
     categoriaId: categorias[0]?.id || '',
@@ -45,36 +48,42 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
     ordem: 0,
   });
 
-  const handleAdicionar = () => {
+  const handleAdicionar = async () => {
     if (!novoGasto.nome.trim() || !categoriaSelecionada) return;
-    
-    // Calcula a ordem (último da categoria + 1)
-    const gastosDaCategoria = gastos.filter(g => g.categoriaId === categoriaSelecionada);
-    const maiorOrdem = gastosDaCategoria.length > 0
-      ? Math.max(...gastosDaCategoria.map(g => g.ordem))
-      : 0;
-    
-    onAdd?.({
-      ...novoGasto,
-      categoriaId: categoriaSelecionada,
-      ordem: maiorOrdem + 1,
-    });
-    
-    // Reset form
-    setNovoGasto({
-      nome: '',
-      categoriaId: categoriaSelecionada,
-      valorAtual: 0,
-      valorMinimo: null,
-      valorMaximo: null,
-      tipo: 'fixo',
-      fonte: 'salario',
-      ativo: true,
-      observacao: null,
-      ordem: 0,
-    });
-    setDialogAberto(false);
+
+    setSaving(true);
+    try {
+      // Calcula a ordem (último da categoria + 1)
+      const gastosDaCategoria = gastos.filter(g => g.categoriaId === categoriaSelecionada);
+      const maiorOrdem = gastosDaCategoria.length > 0
+        ? Math.max(...gastosDaCategoria.map(g => g.ordem))
+        : 0;
+
+      onAdd?.({
+        ...novoGasto,
+        categoriaId: categoriaSelecionada,
+        ordem: maiorOrdem + 1,
+      });
+
+      // Reset form
+      setNovoGasto({
+        nome: '',
+        categoriaId: categoriaSelecionada,
+        valorAtual: 0,
+        valorMinimo: null,
+        valorMaximo: null,
+        tipo: 'fixo',
+        fonte: 'salario',
+        ativo: true,
+        observacao: null,
+        ordem: 0,
+      });
+      setDialogAberto(false);
+    } finally {
+      setSaving(false);
+    }
   };
+
   // Agrupar gastos por categoria
   const gastosPorCategoria = categorias.map((categoria) => ({
     categoria,
@@ -90,6 +99,23 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
     .filter((g) => g.ativo)
     .reduce((acc, g) => acc + g.valorAtual, 0);
 
+  // Opções para os selects
+  const categoriasOptions = categorias.map((cat) => ({
+    value: cat.id,
+    label: cat.nome,
+    icon: cat.icone,
+  }));
+
+  const tipoOptions = [
+    { value: 'fixo', label: 'Fixo' },
+    { value: 'variavel', label: 'Variável' },
+  ];
+
+  const fonteOptions = [
+    { value: 'salario', label: 'Salário' },
+    { value: 'beneficio', label: 'Benefício' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Botão para adicionar novo gasto */}
@@ -97,7 +123,7 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
         <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto">
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4" aria-hidden="true" />
               Adicionar Gasto
             </Button>
           </DialogTrigger>
@@ -111,154 +137,103 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
             <div className="space-y-5 py-4">
               {/* Nome e Categoria */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Nome do Gasto <span className="text-rose-500">*</span>
-                  </label>
-                  <Input
-                    value={novoGasto.nome}
-                    onChange={(e) => setNovoGasto({ ...novoGasto, nome: e.target.value })}
-                    placeholder="Ex: Netflix, Academia..."
-                    className="w-full"
-                  />
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Categoria <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={categoriaSelecionada}
-                    onChange={(e) => {
-                      setCategoriaSelecionada(e.target.value);
-                      setNovoGasto({ ...novoGasto, categoriaId: e.target.value });
-                    }}
-                    className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.icone} {cat.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                <FormField
+                  label="Nome do Gasto"
+                  required
+                  value={novoGasto.nome}
+                  onChange={(e) => setNovoGasto({ ...novoGasto, nome: e.target.value })}
+                  placeholder="Ex: Netflix, Academia..."
+                />
 
-              {/* Valor Atual */}
-              <div>
-                <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                  Valor Atual (R$) <span className="text-rose-500">*</span>
-                </label>
-                <Input
-                  type="number"
-                  value={novoGasto.valorAtual || ''}
-                  onChange={(e) => setNovoGasto({ ...novoGasto, valorAtual: Number(e.target.value) || 0 })}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  className="w-full"
+                <Select
+                  label="Categoria"
+                  required
+                  value={categoriaSelecionada}
+                  onChange={(e) => {
+                    setCategoriaSelecionada(e.target.value);
+                    setNovoGasto({ ...novoGasto, categoriaId: e.target.value });
+                  }}
+                  options={categoriasOptions}
                 />
               </div>
 
+              {/* Valor Atual */}
+              <MoneyInput
+                label="Valor Atual"
+                required
+                value={novoGasto.valorAtual}
+                onChange={(value) => setNovoGasto({ ...novoGasto, valorAtual: value || 0 })}
+              />
+
               {/* Tipo e Fonte */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Tipo
-                  </label>
-                  <select
-                    value={novoGasto.tipo}
-                    onChange={(e) => setNovoGasto({ ...novoGasto, tipo: e.target.value as TipoGasto })}
-                    className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="fixo">Fixo</option>
-                    <option value="variavel">Variável</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Fonte
-                  </label>
-                  <select
-                    value={novoGasto.fonte}
-                    onChange={(e) => setNovoGasto({ ...novoGasto, fonte: e.target.value as FonteGasto })}
-                    className="w-full h-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="salario">Salário</option>
-                    <option value="beneficio">Benefício</option>
-                  </select>
-                </div>
+                <Select
+                  label="Tipo"
+                  value={novoGasto.tipo}
+                  onChange={(e) => setNovoGasto({ ...novoGasto, tipo: e.target.value as TipoGasto })}
+                  options={tipoOptions}
+                  helperText="Fixo = mesmo valor todo mês"
+                />
+                <Select
+                  label="Fonte"
+                  value={novoGasto.fonte}
+                  onChange={(e) => setNovoGasto({ ...novoGasto, fonte: e.target.value as FonteGasto })}
+                  options={fonteOptions}
+                  helperText="De onde sai o dinheiro"
+                />
               </div>
 
               {/* Valores Min/Max - condicional baseado no tipo */}
               {novoGasto.tipo === 'variavel' ? (
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Valor Mínimo (opcional)
-                    </label>
-                    <Input
-                      type="number"
-                      value={novoGasto.valorMinimo || ''}
-                      onChange={(e) => setNovoGasto({ ...novoGasto, valorMinimo: e.target.value ? Number(e.target.value) : null })}
-                      placeholder="Mínimo"
-                      step="0.01"
-                      min="0"
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Valor Máximo (opcional)
-                    </label>
-                    <Input
-                      type="number"
-                      value={novoGasto.valorMaximo || ''}
-                      onChange={(e) => setNovoGasto({ ...novoGasto, valorMaximo: e.target.value ? Number(e.target.value) : null })}
-                      placeholder="Máximo"
-                      step="0.01"
-                      min="0"
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Sugestão (opcional)
-                  </label>
-                  <Input
-                    type="number"
-                    value={novoGasto.valorMinimo || ''}
-                    onChange={(e) => {
-                      const valor = e.target.value ? Number(e.target.value) : null;
-                      setNovoGasto({ ...novoGasto, valorMinimo: valor, valorMaximo: valor });
-                    }}
-                    placeholder="Valor sugerido"
-                    step="0.01"
-                    min="0"
-                    className="w-full"
+                  <MoneyInput
+                    label="Valor Mínimo"
+                    helperText="Opcional"
+                    value={novoGasto.valorMinimo}
+                    onChange={(value) => setNovoGasto({ ...novoGasto, valorMinimo: value })}
+                  />
+                  <MoneyInput
+                    label="Valor Máximo"
+                    helperText="Opcional"
+                    value={novoGasto.valorMaximo}
+                    onChange={(value) => setNovoGasto({ ...novoGasto, valorMaximo: value })}
                   />
                 </div>
+              ) : (
+                <MoneyInput
+                  label="Sugestão"
+                  helperText="Valor de referência (opcional)"
+                  value={novoGasto.valorMinimo}
+                  onChange={(value) => {
+                    setNovoGasto({ ...novoGasto, valorMinimo: value, valorMaximo: value });
+                  }}
+                />
               )}
 
               {/* Ativo/Inativo */}
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-3 pt-2 pb-1">
                 <Switch
+                  id="gasto-ativo"
                   checked={novoGasto.ativo}
                   onCheckedChange={(checked) => setNovoGasto({ ...novoGasto, ativo: checked })}
                 />
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <label
+                  htmlFor="gasto-ativo"
+                  className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
                   Gasto ativo
                 </label>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogAberto(false)}>
+              <Button variant="outline" onClick={() => setDialogAberto(false)} disabled={saving}>
                 Cancelar
               </Button>
-              <Button onClick={handleAdicionar} disabled={!novoGasto.nome.trim() || !categoriaSelecionada}>
-                Adicionar Gasto
+              <Button
+                onClick={handleAdicionar}
+                disabled={!novoGasto.nome.trim() || !categoriaSelecionada || saving}
+              >
+                {saving ? 'Adicionando...' : 'Adicionar Gasto'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -270,7 +245,7 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
-                <span>{categoria.icone}</span>
+                <span aria-hidden="true">{categoria.icone}</span>
                 {categoria.nome}
               </CardTitle>
               <span className="text-sm font-medium text-muted-foreground">
@@ -279,16 +254,22 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {gastosCategoria.map((gasto) => (
-              <GastoCard
-                key={gasto.id}
-                gasto={gasto}
-                categorias={categorias}
-                onUpdate={onUpdate}
-                onToggle={onToggle}
-                onDelete={onDelete}
-              />
-            ))}
+            {gastosCategoria.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum gasto nesta categoria
+              </p>
+            ) : (
+              gastosCategoria.map((gasto) => (
+                <GastoCard
+                  key={gasto.id}
+                  gasto={gasto}
+                  categorias={categorias}
+                  onUpdate={onUpdate}
+                  onToggle={onToggle}
+                  onDelete={onDelete}
+                />
+              ))
+            )}
           </CardContent>
         </Card>
       ))}
