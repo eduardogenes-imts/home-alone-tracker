@@ -9,35 +9,44 @@ import {
   Renda,
   ChecklistItem,
   Cenario,
+  Budgets,
+  AppSettings,
+  TimelineEvent,
+  AppMode,
 } from '@/types';
 import {
   itensSeed,
-  gastosSeed,
   categoriasGastoSeed,
-  rendaSeed,
   checklistSeed,
+  budgetsSeed,
+  settingsSeed,
 } from '@/data/seed';
 import { useSupabase } from './useSupabase';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 const STORAGE_KEY = 'home-alone-tracker';
+const STORAGE_VERSION = 2; // Versão para migração de dados
 
 interface AppState {
+  version: number;
   itens: Item[];
-  gastos: Gasto[];
+  budgets: Budgets;
   categoriasGasto: CategoriaGasto[];
-  renda: Renda;
   checklist: ChecklistItem[];
   cenarios: Cenario[];
+  settings: AppSettings;
+  timeline: TimelineEvent[];
 }
 
 const initialState: AppState = {
+  version: STORAGE_VERSION,
   itens: itensSeed,
-  gastos: gastosSeed,
+  budgets: budgetsSeed,
   categoriasGasto: categoriasGastoSeed,
-  renda: rendaSeed,
   checklist: checklistSeed,
   cenarios: [],
+  settings: settingsSeed,
+  timeline: [],
 };
 
 // Hook para localStorage (fallback quando Supabase nao esta configurado)
@@ -45,19 +54,45 @@ function useLocalStorageState() {
   const [state, setState] = useState<AppState>(initialState);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Carregar do localStorage no mount
+  // Carregar do localStorage no mount (com migração de dados antigos)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          setState({
-            ...initialState,
-            ...parsed,
-          });
-        } catch {
-          console.error('Erro ao carregar dados salvos');
+          
+          // Migração de dados antigos (versão 1 para versão 2)
+          if (!parsed.version || parsed.version < STORAGE_VERSION) {
+            console.log('Migrando dados para nova versão...');
+            const migratedState: AppState = {
+              version: STORAGE_VERSION,
+              itens: parsed.itens || initialState.itens,
+              budgets: {
+                preparation: {
+                  renda: budgetsSeed.preparation.renda,
+                  gastos: budgetsSeed.preparation.gastos,
+                },
+                living: {
+                  renda: parsed.renda || initialState.budgets.living.renda,
+                  gastos: parsed.gastos || initialState.budgets.living.gastos,
+                },
+              },
+              categoriasGasto: parsed.categoriasGasto || initialState.categoriasGasto,
+              checklist: parsed.checklist || initialState.checklist,
+              cenarios: parsed.cenarios || [],
+              settings: parsed.settings || initialState.settings,
+              timeline: parsed.timeline || [],
+            };
+            setState(migratedState);
+          } else {
+            setState({
+              ...initialState,
+              ...parsed,
+            });
+          }
+        } catch (error) {
+          console.error('Erro ao carregar dados salvos:', error);
         }
       }
     }
@@ -72,11 +107,18 @@ function useLocalStorageState() {
     }
   }, [state, isLoaded]);
 
-  // Gastos com categoria
-  const gastosComCategoria: GastoComCategoria[] = state.gastos.map((gasto) => ({
-    ...gasto,
-    categoria: state.categoriasGasto.find((c) => c.id === gasto.categoriaId) || state.categoriasGasto[0],
-  }));
+  // Budget ativo baseado no modo atual
+  const activeBudget = useMemo(() => {
+    return state.budgets[state.settings.currentMode];
+  }, [state.budgets, state.settings.currentMode]);
+
+  // Gastos com categoria do budget ativo
+  const gastosComCategoria: GastoComCategoria[] = useMemo(() => {
+    return activeBudget.gastos.map((gasto) => ({
+      ...gasto,
+      categoria: state.categoriasGasto.find((c) => c.id === gasto.categoriaId) || state.categoriasGasto[0],
+    }));
+  }, [activeBudget.gastos, state.categoriasGasto]);
 
   // === ITENS ===
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -118,19 +160,35 @@ function useLocalStorageState() {
   }, []);
 
   const marcarComoComprado = useCallback((id: string, valorReal: number) => {
-    setState((prev) => ({
-      ...prev,
-      itens: prev.itens.map((item) =>
-        item.id === id
+    setState((prev) => {
+      const item = prev.itens.find((i) => i.id === id);
+      const newItens = prev.itens.map((i) =>
+        i.id === id
           ? {
-              ...item,
+              ...i,
               status: 'comprado' as const,
               valorReal,
               dataCompra: new Date().toISOString(),
             }
-          : item
-      ),
-    }));
+          : i
+      );
+
+      // Registrar no timeline
+      const timelineEvent: TimelineEvent = {
+        id: `timeline-${Date.now()}`,
+        type: 'purchase',
+        date: new Date().toISOString(),
+        title: `Comprado: ${item?.nome || 'Item'}`,
+        description: `Valor: R$ ${valorReal.toFixed(2)}`,
+        metadata: { itemId: id, valor: valorReal },
+      };
+
+      return {
+        ...prev,
+        itens: newItens,
+        timeline: [timelineEvent, ...prev.timeline],
+      };
+    });
   }, []);
 
   // === GASTOS ===
@@ -139,43 +197,107 @@ function useLocalStorageState() {
       ...gasto,
       id: `gasto-${Date.now()}`,
     };
-    setState((prev) => ({
-      ...prev,
-      gastos: [...prev.gastos, newGasto],
-    }));
+    setState((prev) => {
+      const mode = prev.settings.currentMode;
+      return {
+        ...prev,
+        budgets: {
+          ...prev.budgets,
+          [mode]: {
+            ...prev.budgets[mode],
+            gastos: [...prev.budgets[mode].gastos, newGasto],
+          },
+        },
+      };
+    });
   }, []);
 
   const updateGasto = useCallback((id: string, updates: Partial<Gasto>) => {
-    setState((prev) => ({
-      ...prev,
-      gastos: prev.gastos.map((gasto) =>
+    setState((prev) => {
+      const mode = prev.settings.currentMode;
+      const oldGasto = prev.budgets[mode].gastos.find((g) => g.id === id);
+      const newGastos = prev.budgets[mode].gastos.map((gasto) =>
         gasto.id === id ? { ...gasto, ...updates } : gasto
-      ),
-    }));
+      );
+
+      // Registrar mudança significativa no timeline
+      const shouldLog = oldGasto && updates.valorAtual !== undefined && 
+        Math.abs(updates.valorAtual - oldGasto.valorAtual) >= oldGasto.valorAtual * 0.1;
+
+      const timelineEvent: TimelineEvent | null = shouldLog
+        ? {
+            id: `timeline-${Date.now()}`,
+            type: 'budget_change',
+            date: new Date().toISOString(),
+            title: `Orçamento alterado: ${oldGasto.nome}`,
+            description: `De R$ ${oldGasto.valorAtual.toFixed(2)} para R$ ${updates.valorAtual!.toFixed(2)}`,
+            metadata: { gastoId: id, mode, oldValue: oldGasto.valorAtual, newValue: updates.valorAtual },
+          }
+        : null;
+
+      return {
+        ...prev,
+        budgets: {
+          ...prev.budgets,
+          [mode]: {
+            ...prev.budgets[mode],
+            gastos: newGastos,
+          },
+        },
+        timeline: timelineEvent ? [timelineEvent, ...prev.timeline] : prev.timeline,
+      };
+    });
   }, []);
 
   const deleteGasto = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      gastos: prev.gastos.filter((gasto) => gasto.id !== id),
-    }));
+    setState((prev) => {
+      const mode = prev.settings.currentMode;
+      return {
+        ...prev,
+        budgets: {
+          ...prev.budgets,
+          [mode]: {
+            ...prev.budgets[mode],
+            gastos: prev.budgets[mode].gastos.filter((gasto) => gasto.id !== id),
+          },
+        },
+      };
+    });
   }, []);
 
   const toggleGastoAtivo = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      gastos: prev.gastos.map((gasto) =>
-        gasto.id === id ? { ...gasto, ativo: !gasto.ativo } : gasto
-      ),
-    }));
+    setState((prev) => {
+      const mode = prev.settings.currentMode;
+      return {
+        ...prev,
+        budgets: {
+          ...prev.budgets,
+          [mode]: {
+            ...prev.budgets[mode],
+            gastos: prev.budgets[mode].gastos.map((gasto) =>
+              gasto.id === id ? { ...gasto, ativo: !gasto.ativo } : gasto
+            ),
+          },
+        },
+      };
+    });
   }, []);
 
   // === RENDA ===
   const updateRenda = useCallback((updates: Partial<Renda>) => {
-    setState((prev) => ({
-      ...prev,
-      renda: { ...prev.renda, ...updates },
-    }));
+    setState((prev) => {
+      const mode = prev.settings.currentMode;
+      return {
+        ...prev,
+        budgets: {
+          ...prev.budgets,
+          [mode]: {
+            ...prev.budgets[mode],
+            renda: { ...prev.budgets[mode].renda, ...updates },
+          },
+        },
+      };
+    });
   }, []);
 
   // === CHECKLIST ===
@@ -189,12 +311,30 @@ function useLocalStorageState() {
   }, []);
 
   const toggleChecklistConcluido = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      checklist: prev.checklist.map((item) =>
-        item.id === id ? { ...item, concluido: !item.concluido } : item
-      ),
-    }));
+    setState((prev) => {
+      const item = prev.checklist.find((i) => i.id === id);
+      const newChecklist = prev.checklist.map((i) =>
+        i.id === id ? { ...i, concluido: !i.concluido } : i
+      );
+
+      // Registrar conclusão no timeline (somente quando concluir, não quando desmarcar)
+      const wasConcluded = item && !item.concluido;
+      const timelineEvent: TimelineEvent | null = wasConcluded
+        ? {
+            id: `timeline-${Date.now()}`,
+            type: 'checklist',
+            date: new Date().toISOString(),
+            title: `Tarefa concluída: ${item.descricao}`,
+            metadata: { checklistId: id },
+          }
+        : null;
+
+      return {
+        ...prev,
+        checklist: newChecklist,
+        timeline: timelineEvent ? [timelineEvent, ...prev.timeline] : prev.timeline,
+      };
+    });
   }, []);
 
   const addChecklistItem = useCallback((item: Omit<ChecklistItem, 'id' | 'ordem'>) => {
@@ -252,6 +392,44 @@ function useLocalStorageState() {
     }));
   }, []);
 
+  // === SETTINGS ===
+  const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+    setState((prev) => {
+      // Registrar mudança de data de mudança no timeline
+      const dateChanged = updates.targetMoveDate && updates.targetMoveDate !== prev.settings.targetMoveDate;
+      const timelineEvent: TimelineEvent | null = dateChanged
+        ? {
+            id: `timeline-${Date.now()}`,
+            type: 'date_change',
+            date: new Date().toISOString(),
+            title: 'Data de mudança alterada',
+            description: `Nova data: ${new Date(updates.targetMoveDate!).toLocaleDateString('pt-BR')}`,
+            metadata: { oldDate: prev.settings.targetMoveDate, newDate: updates.targetMoveDate },
+          }
+        : null;
+
+      return {
+        ...prev,
+        settings: { ...prev.settings, ...updates },
+        timeline: timelineEvent ? [timelineEvent, ...prev.timeline] : prev.timeline,
+      };
+    });
+  }, []);
+
+  // === TIMELINE ===
+  const addTimelineEvent = useCallback((event: Omit<TimelineEvent, 'id'>) => {
+    setState((prev) => ({
+      ...prev,
+      timeline: [
+        {
+          ...event,
+          id: `timeline-${Date.now()}`,
+        },
+        ...prev.timeline,
+      ],
+    }));
+  }, []);
+
   // Reset para dados iniciais
   const resetToSeed = useCallback(() => {
     setState(initialState);
@@ -263,12 +441,15 @@ function useLocalStorageState() {
   return {
     // Estado
     itens: state.itens,
-    gastos: state.gastos,
+    gastos: activeBudget.gastos,
     gastosComCategoria,
     categoriasGasto: state.categoriasGasto,
-    renda: state.renda,
+    renda: activeBudget.renda,
     checklist: state.checklist,
     cenarios: state.cenarios,
+    settings: state.settings,
+    timeline: state.timeline,
+    budgets: state.budgets,
     isLoaded,
 
     // Acoes - Itens
@@ -296,6 +477,12 @@ function useLocalStorageState() {
     // Acoes - Cenarios
     salvarCenario,
     deleteCenario,
+
+    // Acoes - Settings
+    updateSettings,
+
+    // Acoes - Timeline
+    addTimelineEvent,
 
     // Utils
     resetToSeed,

@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home as HomeIcon, Wallet, ShoppingBag, SlidersHorizontal, CheckSquare, RotateCcw, Moon, Sun, LogOut } from 'lucide-react';
+import { Home as HomeIcon, Wallet, ShoppingBag, SlidersHorizontal, CheckSquare, RotateCcw, Moon, Sun, LogOut, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
 import { useLogout } from '@/hooks/useSupabase';
+import { ModeToggle } from './ModeToggle';
+import { MoveDateSettings } from './MoveDateSettings';
 
 const navItems = [
   { href: '/', icon: HomeIcon, label: 'Dashboard' },
@@ -62,8 +64,28 @@ export function Header({ onReset }: HeaderProps) {
           })}
         </nav>
 
-        {/* Theme Toggle, Reset & Logout Buttons */}
-        <div className="ml-auto flex items-center gap-2" suppressHydrationWarning>
+        {/* Mode Toggle */}
+        <div className="ml-auto mr-2">
+          <ModeToggle />
+        </div>
+
+        {/* Actions: Date Settings, Theme Toggle, Reset & Logout */}
+        <div className="flex items-center gap-2" suppressHydrationWarning>
+          {/* Move Date Settings */}
+          <MoveDateSettings
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-slate-500 hover:text-indigo-500 dark:text-slate-400 dark:hover:text-indigo-400"
+                title="Configurar data de mudança"
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
+            }
+          />
+
+          {/* Theme Toggle */}
           <Button
             variant="ghost"
             size="icon-sm"

@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ItemCard } from '@/components/compras/ItemCard';
 import { FiltrosCompras } from '@/components/compras/FiltrosCompras';
 import { FaseItem, CategoriaItem, StatusItem, PrioridadeItem } from '@/types';
-import { formatarMoeda, labelsCategoria } from '@/lib/calculations';
-import { ShoppingBag, Filter, Package, PiggyBank, TrendingUp, Target, Plus } from 'lucide-react';
+import { formatarMoeda, labelsCategoria, calcularDiasRestantes, calcularMetaMensalCompras } from '@/lib/calculations';
+import { ShoppingBag, Filter, Package, PiggyBank, TrendingUp, Target, Plus, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import {
@@ -51,13 +51,24 @@ const statusOptions = [
 ];
 
 export default function ComprasPage() {
-  const { itens, adicionarPoupanca, marcarComoComprado, updateItem, addItem, deleteItem, isLoaded } = useApp();
+  const { itens, settings, adicionarPoupanca, marcarComoComprado, updateItem, addItem, deleteItem, isLoaded } = useApp();
 
   const [faseAtiva, setFaseAtiva] = useState<FaseItem | 'todas'>('todas');
   const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaItem | 'todas'>('todas');
   const [statusAtivo, setStatusAtivo] = useState<StatusItem | 'todos'>('todos');
   const [dialogAberto, setDialogAberto] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Calcular meta mensal baseado na data de mudança
+  const diasRestantes = calcularDiasRestantes(settings.targetMoveDate);
+  const itensPendentesPreMudanca = itens.filter(
+    (i) => i.fase === 'pre-mudanca' && i.status !== 'comprado'
+  );
+  const valorFaltaPreMudanca = itensPendentesPreMudanca.reduce((acc, item) => {
+    const valorAlvo = item.valorMaximo || item.valorMinimo || 0;
+    return acc + Math.max(0, valorAlvo - item.valorPoupado);
+  }, 0);
+  const metaMensal = calcularMetaMensalCompras(valorFaltaPreMudanca, diasRestantes);
 
   const [novoItem, setNovoItem] = useState({
     nome: '',
@@ -302,6 +313,28 @@ export default function ComprasPage() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Meta mensal (se tiver data alvo e itens pendentes) */}
+        {settings.targetMoveDate && diasRestantes > 0 && valorFaltaPreMudanca > 0 && (
+          <Card className="border-0 shadow-sm bg-indigo-50 dark:bg-indigo-900/20">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                  <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400">Meta Mensal</p>
+                  <p className="text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                    {formatarMoeda(metaMensal)}
+                  </p>
+                  <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">
+                    Para {diasRestantes > 30 ? Math.floor(diasRestantes / 30) + ' meses' : diasRestantes + ' dias'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">

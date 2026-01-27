@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { SlidersHorizontal, Save, RotateCcw, TrendingUp, TrendingDown } from 'lucide-react';
 
 export default function SimuladorPage() {
-  const { gastos, renda, categoriasGasto, cenarios, salvarCenario, deleteCenario, isLoaded } = useApp();
+  const { gastos, renda, categoriasGasto, cenarios, settings, salvarCenario, deleteCenario, isLoaded } = useApp();
 
   // Estado local para simulacao
   const [gastosSimulados, setGastosSimulados] = useState<Record<string, { valorAtual: number; ativo: boolean }>>({});
@@ -36,6 +36,9 @@ export default function SimuladorPage() {
   const [dialogSalvar, setDialogSalvar] = useState(false);
   const [nomeCenario, setNomeCenario] = useState('');
   const [descricaoCenario, setDescricaoCenario] = useState('');
+
+  const isPreparation = settings.currentMode === 'preparation';
+  const modeLabel = isPreparation ? 'Preparação' : 'Morando Sozinho';
 
   // Inicializar estado de simulacao se vazio
   useMemo(() => {
@@ -141,10 +144,23 @@ export default function SimuladorPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Simulador</h1>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">Simulador</h1>
+            <Badge
+              variant="outline"
+              className={cn(
+                'text-xs',
+                isPreparation
+                  ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+              )}
+            >
+              {modeLabel}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">
-            Simule diferentes cenarios financeiros
+            Simule diferentes cenários financeiros para o orçamento de {modeLabel.toLowerCase()}
           </p>
         </div>
         <div className="flex gap-2">

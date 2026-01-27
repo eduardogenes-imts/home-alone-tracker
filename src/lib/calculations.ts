@@ -143,6 +143,45 @@ export function formatarData(data: string | null): string {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(data));
 }
 
+// Calcula dias restantes até uma data alvo
+export function calcularDiasRestantes(targetDate: string | null): number {
+  if (!targetDate) return 0;
+  const now = new Date();
+  const target = new Date(targetDate);
+  const diff = target.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+// Calcula dias decorridos desde uma data
+export function calcularDiasDecorridos(date: string | null): number {
+  if (!date) return 0;
+  const now = new Date();
+  const past = new Date(date);
+  const diff = now.getTime() - past.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+// Calcula meta mensal de poupança para compras
+export function calcularMetaMensalCompras(valorFalta: number, diasRestantes: number): number {
+  if (diasRestantes <= 0) return valorFalta;
+  const mesesRestantes = Math.max(1, Math.floor(diasRestantes / 30));
+  return valorFalta / mesesRestantes;
+}
+
+// Formata período de tempo humanizado
+export function formatarPeriodo(dias: number): string {
+  if (dias === 0) return 'Hoje';
+  if (dias === 1) return '1 dia';
+  if (dias < 0) return `${Math.abs(dias)} dias atrás`;
+  if (dias < 7) return `${dias} dias`;
+  if (dias < 30) {
+    const semanas = Math.floor(dias / 7);
+    return semanas === 1 ? '1 semana' : `${semanas} semanas`;
+  }
+  const meses = Math.floor(dias / 30);
+  return meses === 1 ? '1 mês' : `${meses} meses`;
+}
+
 // Cores do indicador de saude - ATUALIZADO com nova paleta Modern Sanctuary
 export const coresIndicador: Record<
   IndicadorSaude,

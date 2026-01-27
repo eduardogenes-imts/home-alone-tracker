@@ -6,6 +6,12 @@ export type StatusItem = 'pendente' | 'pesquisando' | 'poupando' | 'comprado';
 export type TipoGasto = 'fixo' | 'variavel';
 export type FonteGasto = 'salario' | 'beneficio';
 
+// Modos do app: preparação (antes de morar sozinho) e morando sozinho
+export type AppMode = 'preparation' | 'living';
+
+// Tipos de eventos do histórico/timeline
+export type TimelineEventType = 'purchase' | 'checklist' | 'budget_change' | 'date_change' | 'note';
+
 // Item para compra
 export interface Item {
   id: string;
@@ -120,4 +126,32 @@ export interface ProgressoCompras {
   valorTotalComprado: number;
   valorTotalPoupado: number;
   percentual: number;
+}
+
+// Evento do histórico/timeline
+export interface TimelineEvent {
+  id: string;
+  type: TimelineEventType;
+  date: string; // ISO string
+  title: string;
+  description?: string;
+  metadata?: Record<string, any>; // dados extras específicos por tipo
+}
+
+// Configurações globais do app
+export interface AppSettings {
+  targetMoveDate: string | null; // data prevista de mudança (ISO string)
+  currentMode: AppMode; // modo ativo: preparação ou morando sozinho
+}
+
+// Conjunto de orçamento (renda + gastos) para um modo específico
+export interface BudgetData {
+  renda: Renda;
+  gastos: Gasto[];
+}
+
+// Orçamentos separados por modo
+export interface Budgets {
+  preparation: BudgetData; // orçamento atual (antes de morar sozinho)
+  living: BudgetData; // orçamento projetado (morando sozinho)
 }

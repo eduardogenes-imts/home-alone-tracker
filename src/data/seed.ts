@@ -1,4 +1,4 @@
-import { Item, CategoriaGasto, Gasto, Renda, ChecklistItem } from '@/types';
+import { Item, CategoriaGasto, Gasto, Renda, ChecklistItem, Budgets, AppSettings } from '@/types';
 
 // IDs fixos para referencia
 const categoriaIds = {
@@ -814,9 +814,18 @@ export const gastosSeed: Gasto[] = [
   },
 ];
 
-// Renda inicial
+// Renda inicial (morando sozinho - futuro)
 export const rendaSeed: Renda = {
-  id: 'renda-1',
+  id: 'renda-living',
+  salario: 1800,
+  beneficio: 550,
+  extras: 0,
+  mesReferencia: new Date().toISOString().slice(0, 7) + '-01',
+};
+
+// Renda de preparação (atual, antes de morar sozinho)
+export const rendaPreparationSeed: Renda = {
+  id: 'renda-preparation',
   salario: 1800,
   beneficio: 550,
   extras: 0,
@@ -866,3 +875,183 @@ export const checklistSeed: ChecklistItem[] = [
     ordem: 5,
   },
 ];
+
+// Gastos de preparação (orçamento atual, antes de morar sozinho)
+// Versão simplificada com gastos atuais reais
+export const gastosPreparationSeed: Gasto[] = [
+  // Gastos atuais básicos (morando com família/compartilhado)
+  {
+    id: 'gasto-prep-1',
+    categoriaId: categoriaIds.moradia,
+    nome: 'Contribuição casa familiar',
+    valorMinimo: 300,
+    valorMaximo: 500,
+    valorAtual: 400,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Ajuda de custo atual',
+    ordem: 1,
+  },
+  {
+    id: 'gasto-prep-2',
+    categoriaId: categoriaIds.moradia,
+    nome: 'Celular',
+    valorMinimo: 60,
+    valorMaximo: 60,
+    valorAtual: 60,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Mesmo plano',
+    ordem: 2,
+  },
+  {
+    id: 'gasto-prep-3',
+    categoriaId: categoriaIds.saude,
+    nome: 'Academia',
+    valorMinimo: 270,
+    valorMaximo: 270,
+    valorAtual: 270,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Mensal',
+    ordem: 1,
+  },
+  {
+    id: 'gasto-prep-4',
+    categoriaId: categoriaIds.saude,
+    nome: 'Terapia',
+    valorMinimo: 160,
+    valorMaximo: 160,
+    valorAtual: 160,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Mensal',
+    ordem: 2,
+  },
+  {
+    id: 'gasto-prep-5',
+    categoriaId: categoriaIds.assinaturas,
+    nome: 'Crunchyroll',
+    valorMinimo: 15,
+    valorMaximo: 15,
+    valorAtual: 15,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Mensal',
+    ordem: 1,
+  },
+  {
+    id: 'gasto-prep-6',
+    categoriaId: categoriaIds.assinaturas,
+    nome: 'Amazon Prime',
+    valorMinimo: 13,
+    valorMaximo: 13,
+    valorAtual: 13,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Mensal',
+    ordem: 2,
+  },
+  {
+    id: 'gasto-prep-7',
+    categoriaId: categoriaIds.assinaturas,
+    nome: 'Corte de cabelo',
+    valorMinimo: 80,
+    valorMaximo: 80,
+    valorAtual: 80,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Mensal',
+    ordem: 3,
+  },
+  {
+    id: 'gasto-prep-8',
+    categoriaId: categoriaIds.assinaturas,
+    nome: 'Sobrancelha',
+    valorMinimo: 50,
+    valorMaximo: 50,
+    valorAtual: 50,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Mensal',
+    ordem: 4,
+  },
+  {
+    id: 'gasto-prep-9',
+    categoriaId: categoriaIds.insumos,
+    nome: 'Alimentacao fora / delivery',
+    valorMinimo: 150,
+    valorMaximo: 300,
+    valorAtual: 200,
+    tipo: 'variavel',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Flexivel',
+    ordem: 1,
+  },
+  {
+    id: 'gasto-prep-10',
+    categoriaId: categoriaIds.insumos,
+    nome: 'Higiene pessoal',
+    valorMinimo: 60,
+    valorMaximo: 100,
+    valorAtual: 75,
+    tipo: 'variavel',
+    fonte: 'beneficio',
+    ativo: true,
+    observacao: 'Recorrente',
+    ordem: 2,
+  },
+  {
+    id: 'gasto-prep-11',
+    categoriaId: categoriaIds.insumos,
+    nome: 'Farmacia / imprevistos',
+    valorMinimo: 40,
+    valorMaximo: 80,
+    valorAtual: 60,
+    tipo: 'variavel',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Margem',
+    ordem: 3,
+  },
+  {
+    id: 'gasto-prep-12',
+    categoriaId: categoriaIds.insumos,
+    nome: 'Poupanca para mudanca',
+    valorMinimo: 200,
+    valorMaximo: 500,
+    valorAtual: 350,
+    tipo: 'fixo',
+    fonte: 'salario',
+    ativo: true,
+    observacao: 'Meta mensal para compras',
+    ordem: 4,
+  },
+];
+
+// Configurações iniciais do app
+export const settingsSeed: AppSettings = {
+  targetMoveDate: '2025-09-01', // Data prevista de mudança (setembro 2025)
+  currentMode: 'preparation', // Inicia no modo preparação
+};
+
+// Orçamentos separados por modo
+export const budgetsSeed: Budgets = {
+  preparation: {
+    renda: rendaPreparationSeed,
+    gastos: gastosPreparationSeed,
+  },
+  living: {
+    renda: rendaSeed,
+    gastos: gastosSeed,
+  },
+};
