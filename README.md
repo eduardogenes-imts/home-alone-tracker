@@ -78,6 +78,40 @@ O **Home Alone Tracker** e uma aplicacao web completa para ajudar pessoas que es
 
 ---
 
+## Componentes UI
+
+O projeto possui um design system completo com componentes reutilizaveis em `src/components/ui/`:
+
+| Componente | Descricao |
+|------------|-----------|
+| `Button` | Botao com variantes (default, destructive, outline, ghost, link) e tamanhos |
+| `Input` | Campo de texto base com suporte a estados de erro |
+| `Select` | Dropdown estilizado com label, erro, icones e acessibilidade |
+| `FormField` | Input com label associado (htmlFor/id), validacao e helper text |
+| `MoneyInput` | Input monetario com prefixo R$ e formatacao brasileira |
+| `Dialog` | Modal acessivel baseado em Radix UI |
+| `ConfirmDialog` | Dialog de confirmacao estilizado (substitui `confirm()` nativo) |
+| `Switch` | Toggle on/off com variantes de tamanho |
+| `Slider` | Controle deslizante para valores numericos |
+| `Badge` | Tags/labels para status e categorias |
+| `Card` | Container com cabecalho, conteudo e rodape |
+| `Progress` | Barra de progresso animada |
+| `Tabs` | Navegacao por abas |
+| `Sheet` | Painel lateral deslizante (mobile) |
+
+### Acessibilidade
+
+Todos os componentes de formulario incluem:
+- Labels associados via `htmlFor`/`id`
+- Suporte a `aria-invalid` para estados de erro
+- `aria-describedby` para mensagens de erro e helper text
+- `aria-required` para campos obrigatorios
+- `aria-hidden` em icones decorativos
+- `role="alert"` em mensagens de erro
+- `focus-visible` para navegacao por teclado
+
+---
+
 ## Instalacao
 
 ### Pre-requisitos
@@ -116,7 +150,7 @@ O **Home Alone Tracker** e uma aplicacao web completa para ajudar pessoas que es
    # O schema esta em: supabase/schema.sql
    ```
 
-5. **Crie um usuário para autenticação**
+5. **Crie um usuario para autenticacao**
 
    No dashboard do Supabase:
    - Acesse: `Authentication > Users`
@@ -130,7 +164,7 @@ O **Home Alone Tracker** e uma aplicacao web completa para ajudar pessoas que es
    npm run dev
    ```
 
-7. Acesse [http://localhost:3000](http://localhost:3000) e faça login com suas credenciais
+7. Acesse [http://localhost:3000](http://localhost:3000) e faca login com suas credenciais
 
 ---
 
@@ -150,7 +184,7 @@ O app funciona **100% offline** usando localStorage. Para habilitar sincronizaca
 - Copie a URL e a chave anon de **Settings > API**
 - Adicione ao `.env.local` ou nas variaveis de ambiente da Vercel
 
-### 4. Crie um usuário de autenticação
+### 4. Crie um usuario de autenticacao
 - Va em **Authentication > Users**
 - Clique em **Add user > Create new user**
 - Preencha email e senha
@@ -159,19 +193,6 @@ O app funciona **100% offline** usando localStorage. Para habilitar sincronizaca
 
 ### 5. Habilite Realtime
 O schema ja configura o Realtime automaticamente para sincronizacao instantanea entre dispositivos.
-
-### 5. Configure a autenticação (se estiver publicado)
-Se o app estiver publicado, é importante proteger com autenticação:
-
-1. No dashboard do Supabase, vá em **Authentication > Users**
-2. Clique em **Add user** > **Create new user**
-3. Preencha:
-   - Email: seu@email.com
-   - Password: senha_segura
-   - Auto Confirm User: ✓ (marcar)
-4. Salvar
-
-Agora você pode fazer login na aplicação com essas credenciais.
 
 ---
 
@@ -198,21 +219,38 @@ home-alone-tracker/
 ├── src/
 │   ├── app/                    # App Router (paginas)
 │   │   ├── page.tsx            # Dashboard
+│   │   ├── login/              # Pagina de login
 │   │   ├── mensal/             # Gastos mensais
 │   │   ├── compras/            # Lista de compras
 │   │   ├── simulador/          # Simulador de cenarios
 │   │   └── checklist/          # Checklist de mudanca
 │   ├── components/             # Componentes React
 │   │   ├── dashboard/          # Componentes do dashboard
-│   │   ├── gastos/             # Componentes de gastos
+│   │   ├── mensal/             # Componentes de gastos mensais
 │   │   ├── compras/            # Componentes de compras
-│   │   └── ui/                 # Componentes base (shadcn/ui)
+│   │   ├── layout/             # Header, navegacao
+│   │   └── ui/                 # Componentes base (design system)
+│   │       ├── button.tsx      # Botoes com variantes
+│   │       ├── input.tsx       # Input base
+│   │       ├── select.tsx      # Select estilizado
+│   │       ├── form-field.tsx  # Input com label e erro
+│   │       ├── money-input.tsx # Input monetario (R$)
+│   │       ├── confirm-dialog.tsx # Dialog de confirmacao
+│   │       ├── dialog.tsx      # Modal base
+│   │       ├── switch.tsx      # Toggle
+│   │       ├── slider.tsx      # Range slider
+│   │       ├── badge.tsx       # Tags/labels
+│   │       ├── card.tsx        # Container card
+│   │       ├── progress.tsx    # Barra de progresso
+│   │       ├── tabs.tsx        # Navegacao por abas
+│   │       └── sheet.tsx       # Painel lateral
 │   ├── hooks/                  # Custom hooks
 │   │   ├── useAppState.ts      # Estado global
 │   │   └── useSupabase.ts      # Integracao Supabase
 │   ├── lib/                    # Utilitarios
 │   │   ├── supabase.ts         # Cliente Supabase
-│   │   └── calculations.ts     # Calculos financeiros
+│   │   ├── calculations.ts     # Calculos financeiros
+│   │   └── utils.ts            # Funcoes utilitarias (cn)
 │   ├── types/                  # Tipos TypeScript
 │   └── data/                   # Dados iniciais (seed)
 ├── supabase/
