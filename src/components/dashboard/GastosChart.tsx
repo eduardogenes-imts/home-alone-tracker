@@ -58,8 +58,8 @@ export function GastosChart({ gastosPorCategoria }: GastosChartProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-56 min-h-[224px] w-full">
+          <ResponsiveContainer width="100%" height="100%" minHeight={224}>
             <PieChart>
               <Pie
                 data={data}
