@@ -9,10 +9,13 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const { resetToSeed } = useApp();
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Header onReset={resetToSeed} />
-      <main className="container py-4 pb-20 md:pb-4">{children}</main>
+      {/* Main content com mais respiro e padding consistente */}
+      <main className="flex-1 container max-w-6xl mx-auto px-4 py-6 pb-24 md:py-8 md:pb-8">
+        {children}
+      </main>
       <MobileNav />
-    </>
+    </div>
   );
 }

@@ -26,7 +26,7 @@ export default function MensalPage() {
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+        <div className="animate-pulse text-slate-500">Carregando...</div>
       </div>
     );
   }
@@ -37,10 +37,12 @@ export default function MensalPage() {
   const indicador = getIndicadorSaude(saldo, rendaTotal);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Controle Mensal</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-8">
+      <div className="space-y-1">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">
+          Controle Mensal
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400">
           Gerencie sua renda e gastos mensais
         </p>
       </div>

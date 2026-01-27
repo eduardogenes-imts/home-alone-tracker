@@ -63,24 +63,24 @@ export function ItemCard({
 
   if (item.status === 'comprado') {
     return (
-      <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900">
+      <Card className="border-0 shadow-sm bg-emerald-50 dark:bg-emerald-950/30">
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                <Check className="h-4 w-4 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center">
+                <Check className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="font-medium text-green-700 dark:text-green-400">
+                <p className="font-medium text-emerald-700 dark:text-emerald-400">
                   {item.nome}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {item.observacao || 'Comprado'}
                 </p>
               </div>
             </div>
             {item.valorReal !== null && item.valorReal > 0 && (
-              <span className="font-semibold text-green-600">
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
                 {formatarMoeda(item.valorReal)}
               </span>
             )}
@@ -92,35 +92,37 @@ export function ItemCard({
 
   return (
     <>
-      <Card>
+      <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800">
         <CardContent className="py-4">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {/* Cabecalho */}
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="font-medium">{item.nome}</span>
-                  <Badge className={cn('text-xs', coresCategoriaItem[item.categoria])}>
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {item.nome}
+                  </span>
+                  <Badge className={cn('text-xs border', coresCategoriaItem[item.categoria])}>
                     {labelsCategoria[item.categoria]}
                   </Badge>
-                  <Badge className={cn('text-xs', coresPrioridade[item.prioridade])}>
+                  <Badge className={cn('text-xs border', coresPrioridade[item.prioridade])}>
                     {labelsPrioridade[item.prioridade]}
                   </Badge>
                 </div>
                 {item.observacao && (
-                  <p className="text-xs text-muted-foreground">{item.observacao}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{item.observacao}</p>
                 )}
               </div>
-              <Badge className={cn('text-xs', coresStatus[item.status])}>
+              <Badge className={cn('text-xs border', coresStatus[item.status])}>
                 {labelsStatus[item.status]}
               </Badge>
             </div>
 
             {/* Valores */}
             {temFaixa && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Estimativa:</span>
-                <span className="font-medium">
+              <div className="flex items-center justify-between text-sm bg-slate-50 dark:bg-slate-700/50 rounded-lg px-3 py-2">
+                <span className="text-slate-500 dark:text-slate-400">Estimativa:</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">
                   {formatarMoeda(item.valorMinimo!)} - {formatarMoeda(item.valorMaximo!)}
                 </span>
               </div>
@@ -128,25 +130,30 @@ export function ItemCard({
 
             {/* Progresso da poupanca */}
             {item.valorPoupado > 0 && (
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <PiggyBank className="h-3 w-3" />
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <PiggyBank className="h-4 w-4 text-indigo-500" />
                     Poupado
                   </span>
-                  <span className="font-medium">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
                     {formatarMoeda(item.valorPoupado)} / {formatarMoeda(valorAlvo)}
                   </span>
                 </div>
-                <Progress value={percentualPoupado} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="h-2.5 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-full transition-all"
+                    style={{ width: `${Math.min(percentualPoupado, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                   Faltam {formatarMoeda(falta)}
                 </p>
               </div>
             )}
 
             {/* Acoes */}
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-1">
               <Button
                 variant="outline"
                 size="sm"
@@ -171,20 +178,23 @@ export function ItemCard({
 
       {/* Dialog de Poupanca */}
       <Dialog open={dialogPoupanca} onOpenChange={setDialogPoupanca}>
-        <DialogContent>
+        <DialogContent className="bg-slate-100 dark:bg-slate-900">
           <DialogHeader>
-            <DialogTitle>Adicionar a Caixinha</DialogTitle>
+            <DialogTitle className="text-slate-800 dark:text-slate-200">
+              Adicionar a Caixinha
+            </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Quanto voce quer guardar para <strong>{item.nome}</strong>?
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Quanto voce quer guardar para <strong className="text-slate-700 dark:text-slate-300">{item.nome}</strong>?
             </p>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Input
                 type="number"
                 value={valorPoupanca}
                 onChange={(e) => setValorPoupanca(Number(e.target.value))}
                 placeholder="Valor"
+                className="bg-white dark:bg-slate-800"
               />
               <div className="flex gap-2">
                 {[50, 100, 200].map((v) => (
@@ -193,6 +203,7 @@ export function ItemCard({
                     variant="outline"
                     size="sm"
                     onClick={() => setValorPoupanca(v)}
+                    className={valorPoupanca === v ? 'ring-2 ring-indigo-500' : ''}
                   >
                     {formatarMoeda(v)}
                   </Button>
@@ -214,22 +225,25 @@ export function ItemCard({
 
       {/* Dialog de Comprado */}
       <Dialog open={dialogComprado} onOpenChange={setDialogComprado}>
-        <DialogContent>
+        <DialogContent className="bg-slate-100 dark:bg-slate-900">
           <DialogHeader>
-            <DialogTitle>Marcar como Comprado</DialogTitle>
+            <DialogTitle className="text-slate-800 dark:text-slate-200">
+              Marcar como Comprado
+            </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Quanto voce pagou em <strong>{item.nome}</strong>?
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Quanto voce pagou em <strong className="text-slate-700 dark:text-slate-300">{item.nome}</strong>?
             </p>
             <Input
               type="number"
               value={valorCompra}
               onChange={(e) => setValorCompra(Number(e.target.value))}
               placeholder="Valor pago"
+              className="bg-white dark:bg-slate-800"
             />
             {item.valorPoupado > 0 && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
                 Voce tinha {formatarMoeda(item.valorPoupado)} poupado para este item.
               </p>
             )}
@@ -238,7 +252,7 @@ export function ItemCard({
             <Button variant="outline" onClick={() => setDialogComprado(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleMarcarComprado}>
+            <Button onClick={handleMarcarComprado} className="bg-emerald-600 hover:bg-emerald-700">
               <Check className="h-4 w-4 mr-1" />
               Confirmar Compra
             </Button>

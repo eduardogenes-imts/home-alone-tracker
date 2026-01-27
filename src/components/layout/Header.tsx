@@ -22,11 +22,15 @@ export function Header({ onReset }: HeaderProps) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <Link href="/" className="flex items-center gap-2 mr-6">
-          <span className="text-xl">🏠</span>
-          <span className="font-bold hidden sm:inline-block">Home Alone Tracker</span>
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-700 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-100/80 dark:supports-[backdrop-filter]:bg-slate-900/80">
+      <div className="container max-w-6xl mx-auto flex h-16 items-center px-4">
+        <Link href="/" className="flex items-center gap-3 mr-8">
+          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
+            <span className="text-lg">🏠</span>
+          </div>
+          <span className="font-bold text-slate-800 dark:text-slate-200 hidden sm:inline-block">
+            Home Alone Tracker
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -38,13 +42,16 @@ export function Header({ onReset }: HeaderProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all',
                   isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-800/70'
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className={cn(
+                  'h-4 w-4',
+                  isActive ? 'text-indigo-600 dark:text-indigo-400' : ''
+                )} />
                 {item.label}
               </Link>
             );
@@ -55,9 +62,9 @@ export function Header({ onReset }: HeaderProps) {
         {onReset && (
           <Button
             variant="ghost"
-            size="sm"
+            size="icon-sm"
             onClick={onReset}
-            className="ml-auto text-muted-foreground hover:text-destructive"
+            className="ml-auto text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400"
             title="Resetar para dados iniciais"
           >
             <RotateCcw className="h-4 w-4" />

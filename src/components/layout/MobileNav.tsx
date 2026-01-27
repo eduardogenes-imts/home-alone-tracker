@@ -17,8 +17,8 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
-      <div className="flex items-center justify-around h-16">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-700 md:hidden">
+      <div className="flex items-center justify-around h-18 px-2 py-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -26,14 +26,29 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center w-full h-full gap-1 transition-colors',
+                'flex flex-col items-center justify-center w-full py-2 gap-1 transition-all rounded-xl',
                 isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'text-indigo-600 dark:text-indigo-400'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               )}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <div className={cn(
+                'flex items-center justify-center w-10 h-10 rounded-xl transition-colors',
+                isActive
+                  ? 'bg-indigo-100 dark:bg-indigo-900/50'
+                  : 'hover:bg-slate-200/70 dark:hover:bg-slate-800/70'
+              )}>
+                <item.icon className={cn(
+                  'h-5 w-5',
+                  isActive ? 'text-indigo-600 dark:text-indigo-400' : ''
+                )} />
+              </div>
+              <span className={cn(
+                'text-xs font-medium',
+                isActive ? 'text-indigo-700 dark:text-indigo-300' : ''
+              )}>
+                {item.label}
+              </span>
             </Link>
           );
         })}

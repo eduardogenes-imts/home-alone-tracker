@@ -60,8 +60,9 @@ function useLocalStorageState() {
           console.error('Erro ao carregar dados salvos');
         }
       }
-      setIsLoaded(true);
     }
+    // Sempre setar isLoaded como true, mesmo no servidor
+    setIsLoaded(true);
   }, []);
 
   // Salvar no localStorage quando o estado mudar
@@ -285,17 +286,19 @@ function useLocalStorageState() {
 export function useAppState() {
   const useSupabaseEnabled = isSupabaseConfigured();
 
-  // Usar Supabase se configurado
+  // Usar Supabase se configurado, senao usar localStorage
+  // IMPORTANTE: hooks sempre sao executados, mas useSupabase retorna rapidamente se nao configurado
   const supabaseState = useSupabase();
   const localStorageState = useLocalStorageState();
 
   // Gastos com categoria (para Supabase)
   const gastosComCategoriaSupabase: GastoComCategoria[] = useMemo(() => {
+    if (!useSupabaseEnabled) return [];
     return supabaseState.gastos.map((gasto) => ({
       ...gasto,
       categoria: supabaseState.categoriasGasto.find((c) => c.id === gasto.categoriaId) || supabaseState.categoriasGasto[0],
     }));
-  }, [supabaseState.gastos, supabaseState.categoriasGasto]);
+  }, [supabaseState.gastos, supabaseState.categoriasGasto, useSupabaseEnabled]);
 
   // Se Supabase esta configurado, usar ele; senao, usar localStorage
   if (useSupabaseEnabled) {

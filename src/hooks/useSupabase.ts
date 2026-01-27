@@ -107,15 +107,13 @@ export function useSupabase() {
       }
 
       try {
+        // Timeout de 10 segundos para evitar travamento
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout ao carregar dados do Supabase')), 10000)
+        );
+
         // Carregar todas as tabelas em paralelo
-        const [
-          { data: itensData, error: itensError },
-          { data: gastosData, error: gastosError },
-          { data: categoriasData, error: categoriasError },
-          { data: rendaData, error: rendaError },
-          { data: checklistData, error: checklistError },
-          { data: cenariosData, error: cenariosError },
-        ] = await Promise.all([
+        const dataPromise = Promise.all([
           supabase.from('itens').select('*').order('ordem'),
           supabase.from('gastos').select('*').order('ordem'),
           supabase.from('categorias_gasto').select('*').order('ordem'),
@@ -123,6 +121,15 @@ export function useSupabase() {
           supabase.from('checklist_mudanca').select('*').order('ordem'),
           supabase.from('cenarios').select('*').order('created_at', { ascending: false }),
         ]);
+
+        const [
+          { data: itensData, error: itensError },
+          { data: gastosData, error: gastosError },
+          { data: categoriasData, error: categoriasError },
+          { data: rendaData, error: rendaError },
+          { data: checklistData, error: checklistError },
+          { data: cenariosData, error: cenariosError },
+        ] = await Promise.race([dataPromise, timeoutPromise]) as any;
 
         if (itensError) throw itensError;
         if (gastosError) throw gastosError;

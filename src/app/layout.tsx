@@ -29,7 +29,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#09090b',
+  // Atualizado para slate-800 (tema claro) - fundo do header
+  themeColor: '#1E293B',
 };
 
 export default function RootLayout({
@@ -40,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
       >
         <AppProvider>
           <ClientLayout>{children}</ClientLayout>

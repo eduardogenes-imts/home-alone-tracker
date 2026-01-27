@@ -143,47 +143,82 @@ export function formatarData(data: string | null): string {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(data));
 }
 
-// Cores do indicador de saude
-export const coresIndicador: Record<IndicadorSaude, { bg: string; text: string; border: string }> = {
+// Cores do indicador de saude - ATUALIZADO com nova paleta Modern Sanctuary
+export const coresIndicador: Record<
+  IndicadorSaude,
+  {
+    bg: string;
+    text: string;
+    border: string;
+    cardBg: string;
+    iconBg: string;
+    iconText: string;
+    badgeBg: string;
+    badgeText: string;
+    dot: string;
+    valueText: string;
+  }
+> = {
   verde: {
-    bg: 'bg-green-100 dark:bg-green-900/30',
-    text: 'text-green-700 dark:text-green-400',
-    border: 'border-green-300 dark:border-green-700',
+    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+    text: 'text-emerald-700 dark:text-emerald-400',
+    border: 'border-emerald-300 dark:border-emerald-700',
+    cardBg: 'bg-gradient-to-br from-slate-100 to-emerald-50 dark:from-slate-800 dark:to-emerald-950/30',
+    iconBg: 'bg-emerald-100 dark:bg-emerald-900/50',
+    iconText: 'text-emerald-600 dark:text-emerald-400',
+    badgeBg: 'bg-emerald-100 dark:bg-emerald-900/50',
+    badgeText: 'text-emerald-700 dark:text-emerald-400',
+    dot: 'bg-emerald-500',
+    valueText: 'text-emerald-600 dark:text-emerald-400',
   },
   amarelo: {
-    bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-    text: 'text-yellow-700 dark:text-yellow-400',
-    border: 'border-yellow-300 dark:border-yellow-700',
+    bg: 'bg-amber-100 dark:bg-amber-900/30',
+    text: 'text-amber-700 dark:text-amber-400',
+    border: 'border-amber-300 dark:border-amber-700',
+    cardBg: 'bg-gradient-to-br from-slate-100 to-amber-50 dark:from-slate-800 dark:to-amber-950/30',
+    iconBg: 'bg-amber-100 dark:bg-amber-900/50',
+    iconText: 'text-amber-600 dark:text-amber-400',
+    badgeBg: 'bg-amber-100 dark:bg-amber-900/50',
+    badgeText: 'text-amber-700 dark:text-amber-400',
+    dot: 'bg-amber-500',
+    valueText: 'text-amber-600 dark:text-amber-400',
   },
   vermelho: {
-    bg: 'bg-red-100 dark:bg-red-900/30',
-    text: 'text-red-700 dark:text-red-400',
-    border: 'border-red-300 dark:border-red-700',
+    bg: 'bg-rose-100 dark:bg-rose-900/30',
+    text: 'text-rose-700 dark:text-rose-400',
+    border: 'border-rose-300 dark:border-rose-700',
+    cardBg: 'bg-gradient-to-br from-slate-100 to-rose-50 dark:from-slate-800 dark:to-rose-950/30',
+    iconBg: 'bg-rose-100 dark:bg-rose-900/50',
+    iconText: 'text-rose-600 dark:text-rose-400',
+    badgeBg: 'bg-rose-100 dark:bg-rose-900/50',
+    badgeText: 'text-rose-700 dark:text-rose-400',
+    dot: 'bg-rose-500',
+    valueText: 'text-rose-500 dark:text-rose-400',
   },
 };
 
-// Cores das categorias de itens
+// Cores das categorias de itens - ATUALIZADO com paleta mais suave
 export const coresCategoriaItem: Record<string, string> = {
-  cozinha: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  quarto: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  banheiro: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
-  casa: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  cozinha: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+  quarto: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
+  banheiro: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800',
+  casa: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200 dark:border-violet-800',
 };
 
-// Cores das prioridades
+// Cores das prioridades - ATUALIZADO
 export const coresPrioridade: Record<string, string> = {
-  essencial: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  alta: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  media: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  baixa: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
+  essencial: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+  alta: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
+  media: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+  baixa: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700',
 };
 
-// Cores dos status
+// Cores dos status - ATUALIZADO
 export const coresStatus: Record<string, string> = {
-  pendente: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
-  pesquisando: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  poupando: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  comprado: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  pendente: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+  pesquisando: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+  poupando: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
+  comprado: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
 };
 
 // Labels
@@ -211,4 +246,29 @@ export const labelsCategoria: Record<string, string> = {
 export const labelsFase: Record<string, string> = {
   'pre-mudanca': 'Pre-mudanca',
   'pos-mudanca': 'Pos-mudanca',
+};
+
+// Cores para graficos - Nova paleta sincronizada
+export const CHART_COLORS = {
+  // Indigo para gastos principais
+  primary: '#4F46E5',
+  // Emerald para saldo/poupanca
+  success: '#059669',
+  // Rose para gastos criticos
+  danger: '#F43F5E',
+  // Amber para atencao
+  warning: '#F59E0B',
+  // Violet para categorias extras
+  secondary: '#8B5CF6',
+  // Sky para informacao
+  info: '#0EA5E9',
+  // Paleta completa para graficos de pizza
+  palette: [
+    '#4F46E5', // Indigo
+    '#059669', // Emerald
+    '#F59E0B', // Amber
+    '#F43F5E', // Rose
+    '#8B5CF6', // Violet
+    '#0EA5E9', // Sky
+  ],
 };

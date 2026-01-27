@@ -16,7 +16,7 @@ export default function DashboardPage() {
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+        <div className="animate-pulse text-slate-500">Carregando...</div>
       </div>
     );
   }
@@ -26,23 +26,27 @@ export default function DashboardPage() {
   const progressoPosMudanca = calcularProgressoCompras(itens, 'pos-mudanca');
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-8">
+      {/* Header da pagina com mais respiro */}
+      <div className="space-y-1">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">
+          Dashboard
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400">
           Visao geral do seu planejamento financeiro
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Saldo do mes */}
-        <SaldoCard
-          saldo={resumo.saldo}
-          rendaTotal={resumo.rendaTotal}
-          gastosTotal={resumo.gastosTotal}
-          indicador={resumo.indicadorSaude}
-        />
+      {/* Saldo do mes - Elemento de MAIOR destaque visual */}
+      <SaldoCard
+        saldo={resumo.saldo}
+        rendaTotal={resumo.rendaTotal}
+        gastosTotal={resumo.gastosTotal}
+        indicador={resumo.indicadorSaude}
+      />
 
+      {/* Grid com cards secundarios */}
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Grafico de gastos */}
         <GastosChart gastosPorCategoria={resumo.gastosPorCategoria} />
 
@@ -51,10 +55,10 @@ export default function DashboardPage() {
           progressoPreMudanca={progressoPreMudanca}
           progressoPosMudanca={progressoPosMudanca}
         />
-
-        {/* Proximos passos */}
-        <ProximosPassos checklist={checklist} itens={itens} />
       </div>
+
+      {/* Proximos passos - Full width */}
+      <ProximosPassos checklist={checklist} itens={itens} />
     </div>
   );
 }
