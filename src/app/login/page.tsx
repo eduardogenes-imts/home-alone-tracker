@@ -89,7 +89,7 @@ export default function LoginPage() {
               Home Alone Tracker
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Planeje sua independência financeira
+              Planeje sua independência financeira 
             </p>
           </div>
         </div>
