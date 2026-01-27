@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Item,
   Gasto,
@@ -17,6 +17,8 @@ import {
   rendaSeed,
   checklistSeed,
 } from '@/data/seed';
+import { useSupabase } from './useSupabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 const STORAGE_KEY = 'home-alone-tracker';
 
@@ -38,7 +40,8 @@ const initialState: AppState = {
   cenarios: [],
 };
 
-export function useAppState() {
+// Hook para localStorage (fallback quando Supabase nao esta configurado)
+function useLocalStorageState() {
   const [state, setState] = useState<AppState>(initialState);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -276,4 +279,65 @@ export function useAppState() {
     // Utils
     resetToSeed,
   };
+}
+
+// Hook principal que decide entre Supabase ou localStorage
+export function useAppState() {
+  const useSupabaseEnabled = isSupabaseConfigured();
+
+  // Usar Supabase se configurado
+  const supabaseState = useSupabase();
+  const localStorageState = useLocalStorageState();
+
+  // Gastos com categoria (para Supabase)
+  const gastosComCategoriaSupabase: GastoComCategoria[] = useMemo(() => {
+    return supabaseState.gastos.map((gasto) => ({
+      ...gasto,
+      categoria: supabaseState.categoriasGasto.find((c) => c.id === gasto.categoriaId) || supabaseState.categoriasGasto[0],
+    }));
+  }, [supabaseState.gastos, supabaseState.categoriasGasto]);
+
+  // Se Supabase esta configurado, usar ele; senao, usar localStorage
+  if (useSupabaseEnabled) {
+    return {
+      // Estado
+      itens: supabaseState.itens,
+      gastos: supabaseState.gastos,
+      gastosComCategoria: gastosComCategoriaSupabase,
+      categoriasGasto: supabaseState.categoriasGasto,
+      renda: supabaseState.renda,
+      checklist: supabaseState.checklist,
+      cenarios: supabaseState.cenarios,
+      isLoaded: supabaseState.isLoaded,
+
+      // Acoes - Itens
+      updateItem: supabaseState.updateItem,
+      addItem: supabaseState.addItem,
+      deleteItem: supabaseState.deleteItem,
+      adicionarPoupanca: supabaseState.adicionarPoupanca,
+      marcarComoComprado: supabaseState.marcarComoComprado,
+
+      // Acoes - Gastos
+      updateGasto: supabaseState.updateGasto,
+      toggleGastoAtivo: supabaseState.toggleGastoAtivo,
+
+      // Acoes - Renda
+      updateRenda: supabaseState.updateRenda,
+
+      // Acoes - Checklist
+      updateChecklistItem: supabaseState.updateChecklistItem,
+      toggleChecklistConcluido: supabaseState.toggleChecklistConcluido,
+      addChecklistItem: supabaseState.addChecklistItem,
+      deleteChecklistItem: supabaseState.deleteChecklistItem,
+
+      // Acoes - Cenarios
+      salvarCenario: supabaseState.salvarCenario,
+      deleteCenario: supabaseState.deleteCenario,
+
+      // Utils
+      resetToSeed: () => console.warn('Reset nao disponivel com Supabase'),
+    };
+  }
+
+  return localStorageState;
 }
