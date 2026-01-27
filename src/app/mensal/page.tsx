@@ -20,6 +20,8 @@ export default function MensalPage() {
     updateRenda,
     updateGasto,
     toggleGastoAtivo,
+    addGasto,
+    deleteGasto,
     isLoaded,
   } = useApp();
 
@@ -64,6 +66,8 @@ export default function MensalPage() {
         categorias={categoriasGasto}
         onUpdate={updateGasto}
         onToggle={toggleGastoAtivo}
+        onAdd={addGasto}
+        onDelete={deleteGasto}
       />
     </div>
   );

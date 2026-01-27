@@ -9,6 +9,8 @@ import {
   Renda,
   ChecklistItem,
   Cenario,
+  TipoGasto,
+  FonteGasto,
 } from '@/types';
 
 // Funcoes de conversao DB -> App
@@ -297,6 +299,46 @@ export function useSupabase() {
   }, [updateItem]);
 
   // === GASTOS ===
+  const addGasto = useCallback(async (gasto: Omit<Gasto, 'id'>) => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const dbGasto: Omit<DbGasto, 'id' | 'created_at' | 'updated_at'> = {
+      categoria_id: gasto.categoriaId,
+      nome: gasto.nome,
+      valor_minimo: gasto.valorMinimo,
+      valor_maximo: gasto.valorMaximo,
+      valor_atual: gasto.valorAtual,
+      tipo: gasto.tipo,
+      fonte: gasto.fonte,
+      ativo: gasto.ativo,
+      observacao: gasto.observacao,
+      ordem: gasto.ordem,
+    };
+
+    const { data, error } = await supabase.from('gastos').insert(dbGasto).select().single();
+    if (error) {
+      console.error('Erro ao adicionar gasto:', error);
+      return;
+    }
+
+    const newGasto: Gasto = {
+      id: data.id,
+      categoriaId: data.categoria_id,
+      nome: data.nome,
+      valorMinimo: data.valor_minimo,
+      valorMaximo: data.valor_maximo,
+      valorAtual: data.valor_atual,
+      tipo: data.tipo as TipoGasto,
+      fonte: data.fonte as FonteGasto,
+      ativo: data.ativo,
+      observacao: data.observacao,
+      ordem: data.ordem,
+    };
+
+    setGastos(prev => [...prev, newGasto]);
+  }, []);
+
   const updateGasto = useCallback(async (id: string, updates: Partial<Gasto>) => {
     const supabase = getSupabase();
     if (!supabase) return;
@@ -320,6 +362,19 @@ export function useSupabase() {
     }
 
     setGastos(prev => prev.map(gasto => gasto.id === id ? { ...gasto, ...updates } : gasto));
+  }, []);
+
+  const deleteGasto = useCallback(async (id: string) => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const { error } = await supabase.from('gastos').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao deletar gasto:', error);
+      return;
+    }
+
+    setGastos(prev => prev.filter(gasto => gasto.id !== id));
   }, []);
 
   const toggleGastoAtivo = useCallback(async (id: string) => {
@@ -497,7 +552,9 @@ export function useSupabase() {
     marcarComoComprado,
 
     // Acoes - Gastos
+    addGasto,
     updateGasto,
+    deleteGasto,
     toggleGastoAtivo,
 
     // Acoes - Renda

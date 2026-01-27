@@ -1,0 +1,16 @@
+{
+  "name": "Home Alone Tracker",
+  "short_name": "Home Alone",
+  "description": "Planejador financeiro pessoal para quem está se preparando para morar sozinho",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E2E8F0",
+  "theme_color": "#1E293B",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -134,12 +134,30 @@ function useLocalStorageState() {
   }, []);
 
   // === GASTOS ===
+  const addGasto = useCallback((gasto: Omit<Gasto, 'id'>) => {
+    const newGasto: Gasto = {
+      ...gasto,
+      id: `gasto-${Date.now()}`,
+    };
+    setState((prev) => ({
+      ...prev,
+      gastos: [...prev.gastos, newGasto],
+    }));
+  }, []);
+
   const updateGasto = useCallback((id: string, updates: Partial<Gasto>) => {
     setState((prev) => ({
       ...prev,
       gastos: prev.gastos.map((gasto) =>
         gasto.id === id ? { ...gasto, ...updates } : gasto
       ),
+    }));
+  }, []);
+
+  const deleteGasto = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      gastos: prev.gastos.filter((gasto) => gasto.id !== id),
     }));
   }, []);
 
@@ -261,7 +279,9 @@ function useLocalStorageState() {
     marcarComoComprado,
 
     // Acoes - Gastos
+    addGasto,
     updateGasto,
+    deleteGasto,
     toggleGastoAtivo,
 
     // Acoes - Renda
@@ -321,7 +341,9 @@ export function useAppState() {
       marcarComoComprado: supabaseState.marcarComoComprado,
 
       // Acoes - Gastos
+      addGasto: supabaseState.addGasto,
       updateGasto: supabaseState.updateGasto,
+      deleteGasto: supabaseState.deleteGasto,
       toggleGastoAtivo: supabaseState.toggleGastoAtivo,
 
       // Acoes - Renda
