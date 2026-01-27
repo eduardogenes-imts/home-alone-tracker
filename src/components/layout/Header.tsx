@@ -27,9 +27,9 @@ export function Header({ onReset }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-700 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-100/80 dark:supports-[backdrop-filter]:bg-slate-900/80">
-      <div className="container max-w-6xl mx-auto flex h-16 items-center px-4">
+      <div className="container max-w-6xl mx-auto flex h-16 items-center px-4" suppressHydrationWarning>
         <Link href="/" className="flex items-center gap-3 mr-8">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center" suppressHydrationWarning>
             <span className="text-lg">🏠</span>
           </div>
           <span className="font-bold text-slate-800 dark:text-slate-200 hidden sm:inline-block">

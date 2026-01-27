@@ -1,12 +1,21 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { useApp } from '@/components/AppProvider';
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   const { resetToSeed } = useApp();
+  const pathname = usePathname();
+
+  // Rotas que nao devem ter header/navbar (paginas de autenticacao)
+  const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register');
+
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col" suppressHydrationWarning>

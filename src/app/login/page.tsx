@@ -6,6 +6,7 @@ import { getSupabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Card } from '@/components/ui/card';
+import { Home, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -58,7 +59,6 @@ export default function LoginPage() {
       if (authError) throw authError;
 
       if (data.session) {
-        // Salvar tokens nos cookies
         document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=3600; SameSite=Lax`;
         document.cookie = `sb-refresh-token=${data.session.refresh_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 
@@ -73,14 +73,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
-      <Card className="w-full max-w-md p-8 space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Home Alone Tracker</h1>
-          <p className="text-muted-foreground">Entre para acessar o sistema</p>
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 p-4 overflow-hidden" suppressHydrationWarning>
+      {/* Decorative background elements */}
+      <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-indigo-300/40 dark:bg-indigo-500/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-300/40 dark:bg-emerald-500/20 rounded-full blur-3xl" />
+
+      <Card className="relative z-10 w-full max-w-md p-8 shadow-xl border-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md">
+        {/* Logo and Header */}
+        <div className="text-center space-y-4 mb-8" suppressHydrationWarning>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/25" suppressHydrationWarning>
+            <Home className="w-8 h-8 text-white" strokeWidth={2} />
+          </div>
+          <div className="space-y-1" suppressHydrationWarning>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Home Alone Tracker
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Planeje sua independência financeira
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4" noValidate>
+        <form onSubmit={handleLogin} className="space-y-5" noValidate suppressHydrationWarning>
           <FormField
             label="Email"
             type="email"
@@ -96,35 +110,88 @@ export default function LoginPage() {
             autoComplete="email"
           />
 
-          <FormField
-            label="Senha"
-            type="password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (errors.password) setErrors({ ...errors, password: undefined });
-            }}
-            placeholder="••••••••"
-            required
-            disabled={loading}
-            error={errors.password}
-            autoComplete="current-password"
-          />
+          <div className="space-y-2" suppressHydrationWarning>
+            <FormField
+              label="Senha"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors({ ...errors, password: undefined });
+              }}
+              placeholder="••••••••"
+              required
+              disabled={loading}
+              error={errors.password}
+              autoComplete="current-password"
+            />
+            <div className="text-right" suppressHydrationWarning>
+              <button
+                type="button"
+                className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
+                onClick={() => {
+                  // TODO: Implementar recuperacao de senha
+                }}
+              >
+                Esqueceu a senha?
+              </button>
+            </div>
+          </div>
 
           {error && (
             <div
-              className="text-sm text-destructive bg-destructive/10 p-3 rounded-md"
+              className="flex items-center gap-2 text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 p-3 rounded-lg border border-rose-200 dark:border-rose-900"
               role="alert"
               aria-live="polite"
             >
-              {error}
+              <svg
+                className="w-4 h-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Entrando...' : 'Entrar'}
+          <Button
+            type="submit"
+            className="w-full h-11 text-base font-medium"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Entrando...
+              </>
+            ) : (
+              'Entrar'
+            )}
           </Button>
         </form>
+
+        {/* Footer */}
+        <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700" suppressHydrationWarning>
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+            Novo por aqui?{' '}
+            <button
+              type="button"
+              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
+              onClick={() => {
+                // TODO: Implementar registro
+              }}
+            >
+              Crie sua conta
+            </button>
+          </p>
+        </div>
       </Card>
     </div>
   );
