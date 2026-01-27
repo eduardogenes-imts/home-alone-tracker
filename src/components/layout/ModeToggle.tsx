@@ -17,7 +17,7 @@ export function ModeToggle() {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  if (!mounted || !settings) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800">
         <div className="h-4 w-24 bg-slate-300 dark:bg-slate-700 animate-pulse rounded" />

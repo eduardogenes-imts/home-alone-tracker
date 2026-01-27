@@ -509,15 +509,39 @@ export function useAppState() {
 
   // Se Supabase esta configurado, usar ele; senao, usar localStorage
   if (useSupabaseEnabled) {
+    // Budget ativo baseado no modo atual (para Supabase)
+    const activeBudgetSupabase = useMemo(() => {
+      return supabaseState.budgets?.[supabaseState.settings?.currentMode || 'preparation'] || {
+        renda: supabaseState.renda || {
+          id: 'renda-default',
+          salario: 0,
+          beneficio: 0,
+          extras: 0,
+          mesReferencia: new Date().toISOString().slice(0, 7) + '-01',
+        },
+        gastos: supabaseState.gastos || [],
+      };
+    }, [supabaseState.budgets, supabaseState.settings?.currentMode, supabaseState.renda, supabaseState.gastos]);
+
+    const gastosComCategoriaActive = useMemo(() => {
+      return activeBudgetSupabase.gastos.map((gasto) => ({
+        ...gasto,
+        categoria: supabaseState.categoriasGasto.find((c) => c.id === gasto.categoriaId) || supabaseState.categoriasGasto[0],
+      }));
+    }, [activeBudgetSupabase.gastos, supabaseState.categoriasGasto]);
+
     return {
       // Estado
       itens: supabaseState.itens,
-      gastos: supabaseState.gastos,
-      gastosComCategoria: gastosComCategoriaSupabase,
+      gastos: activeBudgetSupabase.gastos,
+      gastosComCategoria: gastosComCategoriaActive,
       categoriasGasto: supabaseState.categoriasGasto,
-      renda: supabaseState.renda,
+      renda: activeBudgetSupabase.renda,
       checklist: supabaseState.checklist,
       cenarios: supabaseState.cenarios,
+      settings: supabaseState.settings,
+      timeline: supabaseState.timeline,
+      budgets: supabaseState.budgets,
       isLoaded: supabaseState.isLoaded,
 
       // Acoes - Itens
@@ -545,6 +569,12 @@ export function useAppState() {
       // Acoes - Cenarios
       salvarCenario: supabaseState.salvarCenario,
       deleteCenario: supabaseState.deleteCenario,
+
+      // Acoes - Settings
+      updateSettings: supabaseState.updateSettings,
+
+      // Acoes - Timeline
+      addTimelineEvent: supabaseState.addTimelineEvent,
 
       // Utils
       resetToSeed: () => console.warn('Reset nao disponivel com Supabase'),

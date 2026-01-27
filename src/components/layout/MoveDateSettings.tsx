@@ -13,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { calcularDiasRestantes, formatarPeriodo, formatarData } from '@/lib/calculations';
 import { Calendar, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface MoveDateSettingsProps {
   trigger?: React.ReactNode;
@@ -22,12 +22,19 @@ interface MoveDateSettingsProps {
 export function MoveDateSettings({ trigger }: MoveDateSettingsProps) {
   const { settings, updateSettings } = useApp();
   const [open, setOpen] = useState(false);
-  const [tempDate, setTempDate] = useState(settings.targetMoveDate || '');
+  const [tempDate, setTempDate] = useState('');
+
+  // Atualizar tempDate quando settings estiver disponível
+  useEffect(() => {
+    if (settings?.targetMoveDate) {
+      setTempDate(settings.targetMoveDate);
+    }
+  }, [settings?.targetMoveDate]);
 
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);
-    if (isOpen) {
-      setTempDate(settings.targetMoveDate || '');
+    if (isOpen && settings?.targetMoveDate) {
+      setTempDate(settings.targetMoveDate);
     }
   };
 

@@ -11,7 +11,11 @@ import {
   Cenario,
   TipoGasto,
   FonteGasto,
+  AppSettings,
+  TimelineEvent,
+  Budgets,
 } from '@/types';
+import { settingsSeed, budgetsSeed } from '@/data/seed';
 
 // Funcoes de conversao DB -> App
 function dbItemToItem(db: DbItem): Item {
@@ -96,6 +100,9 @@ export function useSupabase() {
   const [renda, setRenda] = useState<Renda | null>(null);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [cenarios, setCenarios] = useState<Cenario[]>([]);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [budgets, setBudgets] = useState<Budgets | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -552,6 +559,23 @@ export function useSupabase() {
     mesReferencia: new Date().toISOString().slice(0, 10),
   };
 
+  // Valores padrão para settings e timeline (se não carregados do Supabase)
+  const settingsFinal = settings || settingsSeed;
+  const timelineFinal = timeline || [];
+  const budgetsFinal = budgets || budgetsSeed;
+
+  // Ações placeholder para settings e timeline (implementar depois se necessário)
+  const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+    setSettings((prev) => ({ ...(prev || settingsSeed), ...updates }));
+  }, []);
+
+  const addTimelineEvent = useCallback((event: Omit<TimelineEvent, 'id'>) => {
+    setTimeline((prev) => [
+      { ...event, id: `timeline-${Date.now()}` },
+      ...prev,
+    ]);
+  }, []);
+
   return {
     // Estado
     itens,
@@ -560,6 +584,9 @@ export function useSupabase() {
     renda: rendaFinal,
     checklist,
     cenarios,
+    settings: settingsFinal,
+    timeline: timelineFinal,
+    budgets: budgetsFinal,
     isLoaded,
     error,
 
@@ -588,6 +615,12 @@ export function useSupabase() {
     // Acoes - Cenarios
     salvarCenario,
     deleteCenario,
+
+    // Acoes - Settings
+    updateSettings,
+
+    // Acoes - Timeline
+    addTimelineEvent,
 
     // Auth
     logout,
