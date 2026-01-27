@@ -32,12 +32,15 @@ CREATE TABLE renda (
   beneficio DECIMAL(10,2) NOT NULL DEFAULT 0,
   extras DECIMAL(10,2) DEFAULT 0,
   mes_referencia DATE NOT NULL DEFAULT CURRENT_DATE,
+  mode VARCHAR(20) DEFAULT 'living', -- 'preparation' ou 'living'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Inserir renda inicial
-INSERT INTO renda (salario, beneficio, extras) VALUES (1800, 550, 0);
+-- Inserir renda inicial (preparation e living)
+INSERT INTO renda (salario, beneficio, extras, mode) VALUES 
+  (1800, 550, 0, 'preparation'),
+  (1800, 550, 0, 'living');
 
 -- =============================================
 -- TABELA: gastos
@@ -54,14 +57,15 @@ CREATE TABLE gastos (
   ativo BOOLEAN DEFAULT TRUE,
   observacao TEXT,
   ordem INT DEFAULT 0,
+  mode VARCHAR(20) DEFAULT 'living', -- 'preparation' ou 'living'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Inserir gastos padrão (usando subquery para pegar o ID da categoria)
-INSERT INTO gastos (categoria_id, nome, valor_minimo, valor_maximo, valor_atual, tipo, fonte, ativo, observacao, ordem) VALUES
+-- Inserir gastos padrão para modo 'living' (morando sozinho)
+INSERT INTO gastos (categoria_id, nome, valor_minimo, valor_maximo, valor_atual, tipo, fonte, ativo, observacao, ordem, mode) VALUES
   -- MORADIA
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Aluguel', 700, 700, 700, 'fixo', 'salario', true, 'Base', 1),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Aluguel', 700, 700, 700, 'fixo', 'salario', true, 'Base', 1, 'living'),
   ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Internet', 100, 100, 100, 'fixo', 'salario', true, 'Fixa', 2),
   ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Celular', 60, 60, 60, 'fixo', 'salario', true, 'Fixa', 3),
   ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Energia - base', 80, 110, 95, 'variavel', 'salario', true, 'Geladeira inverter + uso leve', 4),
@@ -151,6 +155,33 @@ INSERT INTO itens (nome, categoria, fase, prioridade, valor_minimo, valor_maximo
   ('Lixeiras (cozinha e banheiro)', 'casa', 'pos-mudanca', 'alta', NULL, NULL, 0, 'comprado', 'Ja tinha', 7);
 
 -- =============================================
+-- TABELA: app_settings
+-- =============================================
+CREATE TABLE app_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  target_move_date DATE, -- data prevista de mudança
+  current_mode VARCHAR(20) DEFAULT 'preparation', -- 'preparation' ou 'living'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Inserir configuração inicial
+INSERT INTO app_settings (target_move_date, current_mode) VALUES ('2025-09-01', 'preparation');
+
+-- =============================================
+-- TABELA: timeline_events
+-- =============================================
+CREATE TABLE timeline_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type VARCHAR(20) NOT NULL, -- 'purchase', 'checklist', 'budget_change', 'date_change', 'note'
+  date TIMESTAMP WITH TIME ZONE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  metadata JSONB, -- dados extras específicos por tipo de evento
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =============================================
 -- TABELA: checklist_mudanca
 -- =============================================
 CREATE TABLE checklist_mudanca (
@@ -195,6 +226,8 @@ ALTER TABLE gastos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE itens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE checklist_mudanca ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cenarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE timeline_events ENABLE ROW LEVEL SECURITY;
 
 -- Policies para acesso publico (anon)
 CREATE POLICY "Allow all for categorias_gasto" ON categorias_gasto FOR ALL USING (true) WITH CHECK (true);
@@ -203,6 +236,8 @@ CREATE POLICY "Allow all for gastos" ON gastos FOR ALL USING (true) WITH CHECK (
 CREATE POLICY "Allow all for itens" ON itens FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for checklist_mudanca" ON checklist_mudanca FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for cenarios" ON cenarios FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all for app_settings" ON app_settings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all for timeline_events" ON timeline_events FOR ALL USING (true) WITH CHECK (true);
 
 -- =============================================
 -- FUNCAO: Atualizar updated_at automaticamente
@@ -220,6 +255,7 @@ CREATE TRIGGER update_renda_updated_at BEFORE UPDATE ON renda FOR EACH ROW EXECU
 CREATE TRIGGER update_gastos_updated_at BEFORE UPDATE ON gastos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_itens_updated_at BEFORE UPDATE ON itens FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_checklist_updated_at BEFORE UPDATE ON checklist_mudanca FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_app_settings_updated_at BEFORE UPDATE ON app_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================
 -- HABILITAR REALTIME
@@ -229,6 +265,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE gastos;
 ALTER PUBLICATION supabase_realtime ADD TABLE itens;
 ALTER PUBLICATION supabase_realtime ADD TABLE checklist_mudanca;
 ALTER PUBLICATION supabase_realtime ADD TABLE cenarios;
+ALTER PUBLICATION supabase_realtime ADD TABLE app_settings;
+ALTER PUBLICATION supabase_realtime ADD TABLE timeline_events;
 
 -- =============================================
 -- INSTRUÇÕES PARA CRIAR USUÁRIO
