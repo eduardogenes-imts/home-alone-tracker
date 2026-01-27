@@ -229,3 +229,21 @@ ALTER PUBLICATION supabase_realtime ADD TABLE gastos;
 ALTER PUBLICATION supabase_realtime ADD TABLE itens;
 ALTER PUBLICATION supabase_realtime ADD TABLE checklist_mudanca;
 ALTER PUBLICATION supabase_realtime ADD TABLE cenarios;
+
+-- =============================================
+-- INSTRUÇÕES PARA CRIAR USUÁRIO
+-- =============================================
+-- 
+-- Para habilitar a autenticação, você precisa criar um usuário
+-- no painel do Supabase:
+-- 
+-- 1. Acesse: https://supabase.com/dashboard/project/[seu-projeto]/auth/users
+-- 2. Clique em "Add user" > "Create new user"
+-- 3. Preencha:
+--    - Email: seu@email.com
+--    - Password: sua_senha_segura
+--    - Auto Confirm User: ✓ (marcar)
+-- 4. Salvar
+-- 
+-- Pronto! Use essas credenciais na tela de login do app.
+-- =============================================

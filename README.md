@@ -116,12 +116,21 @@ O **Home Alone Tracker** e uma aplicacao web completa para ajudar pessoas que es
    # O schema esta em: supabase/schema.sql
    ```
 
-5. **Inicie o servidor de desenvolvimento**
+5. **Crie um usuário para autenticação**
+
+   No dashboard do Supabase:
+   - Acesse: `Authentication > Users`
+   - Clique em `Add user > Create new user`
+   - Preencha email e senha
+   - Marque `Auto Confirm User`
+   - Salvar
+
+6. **Inicie o servidor de desenvolvimento**
    ```bash
    npm run dev
    ```
 
-6. Acesse [http://localhost:3000](http://localhost:3000)
+7. Acesse [http://localhost:3000](http://localhost:3000) e faça login com suas credenciais
 
 ---
 
@@ -141,8 +150,28 @@ O app funciona **100% offline** usando localStorage. Para habilitar sincronizaca
 - Copie a URL e a chave anon de **Settings > API**
 - Adicione ao `.env.local` ou nas variaveis de ambiente da Vercel
 
-### 4. Habilite Realtime
+### 4. Crie um usuário de autenticação
+- Va em **Authentication > Users**
+- Clique em **Add user > Create new user**
+- Preencha email e senha
+- Marque **Auto Confirm User**
+- Salvar
+
+### 5. Habilite Realtime
 O schema ja configura o Realtime automaticamente para sincronizacao instantanea entre dispositivos.
+
+### 5. Configure a autenticação (se estiver publicado)
+Se o app estiver publicado, é importante proteger com autenticação:
+
+1. No dashboard do Supabase, vá em **Authentication > Users**
+2. Clique em **Add user** > **Create new user**
+3. Preencha:
+   - Email: seu@email.com
+   - Password: senha_segura
+   - Auto Confirm User: ✓ (marcar)
+4. Salvar
+
+Agora você pode fazer login na aplicação com essas credenciais.
 
 ---
 

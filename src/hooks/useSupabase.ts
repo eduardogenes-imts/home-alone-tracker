@@ -524,6 +524,25 @@ export function useSupabase() {
     setCenarios(prev => prev.filter(c => c.id !== id));
   }, []);
 
+  // Logout
+  const logout = useCallback(async () => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    try {
+      await supabase.auth.signOut();
+      
+      // Limpar cookies
+      document.cookie = 'sb-access-token=; path=/; max-age=0';
+      document.cookie = 'sb-refresh-token=; path=/; max-age=0';
+      
+      // Redirecionar ao login
+      window.location.href = '/login';
+    } catch (err) {
+      console.error('Erro ao fazer logout:', err);
+    }
+  }, []);
+
   // Renda padrao caso nao exista no banco
   const rendaFinal: Renda = renda || {
     id: '',
@@ -569,5 +588,29 @@ export function useSupabase() {
     // Acoes - Cenarios
     salvarCenario,
     deleteCenario,
+
+    // Auth
+    logout,
   };
+}
+
+// Hook adicional para logout
+export function useLogout() {
+  return useCallback(async () => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    try {
+      await supabase.auth.signOut();
+      
+      // Limpar cookies
+      document.cookie = 'sb-access-token=; path=/; max-age=0';
+      document.cookie = 'sb-refresh-token=; path=/; max-age=0';
+      
+      // Redirecionar ao login
+      window.location.href = '/login';
+    } catch (err) {
+      console.error('Erro ao fazer logout:', err);
+    }
+  }, []);
 }
