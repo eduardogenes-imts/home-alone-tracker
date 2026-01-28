@@ -22,7 +22,9 @@ O **Home Alone Tracker** e uma aplicacao web completa para ajudar pessoas que es
 
 ### Por que usar?
 
+- **Dois modos de operacao**: Modo Preparacao (antes de mudar) e Modo Morando Sozinho (apos mudar)
 - **Planejamento completo**: Desde gastos mensais ate lista de compras
+- **Visibilidade por modo**: Gastos podem aparecer em um modo, no outro ou em ambos
 - **Simulacao de cenarios**: Teste diferentes configuracoes de gastos antes de se comprometer
 - **Sincronizacao em tempo real**: Acesse de qualquer dispositivo com Supabase
 - **Interface intuitiva**: Design limpo e responsivo com Tailwind CSS
@@ -33,15 +35,24 @@ O **Home Alone Tracker** e uma aplicacao web completa para ajudar pessoas que es
 ## Funcionalidades
 
 ### Dashboard
-- Visao geral do saldo mensal
+- Visao geral do saldo mensal (separado por modo)
 - Grafico de distribuicao de gastos por categoria
 - Progresso das compras (pre e pos-mudanca)
 - Proximos passos do checklist
+- Indicador visual do modo atual
+
+### Modos de Operacao
+- **Modo Preparacao**: Para quem ainda esta se preparando para morar sozinho
+- **Modo Morando Sozinho**: Para quando ja estiver na nova moradia
+- Troca rapida entre modos pelo header
+- Cada modo tem seus proprios gastos e orcamento
 
 ### Gastos Mensais
 - Cadastro de gastos fixos e variaveis
 - Organizacao por categorias (Moradia, Saude, Assinaturas, Insumos)
 - Separacao por fonte (Salario ou Beneficio)
+- **Visibilidade configuravel**: Gasto pode aparecer em Preparacao, Morando Sozinho ou Ambos
+- Edicao rapida de visibilidade diretamente no card
 - Ativar/desativar gastos para simulacao
 
 ### Lista de Compras
@@ -60,6 +71,11 @@ O **Home Alone Tracker** e uma aplicacao web completa para ajudar pessoas que es
 - Lista de tarefas pre-mudanca
 - Datas alvo e observacoes
 - Acompanhamento de progresso
+
+### Configuracoes
+- Data prevista de mudanca
+- Alternancia entre modos
+- Persistencia automatica no Supabase
 
 ---
 
@@ -98,6 +114,7 @@ O projeto possui um design system completo com componentes reutilizaveis em `src
 | `Progress` | Barra de progresso animada |
 | `Tabs` | Navegacao por abas |
 | `Sheet` | Painel lateral deslizante (mobile) |
+| `Popover` | Menu popup para acoes contextuais |
 
 ### Acessibilidade
 
@@ -194,6 +211,19 @@ O app funciona **100% offline** usando localStorage. Para habilitar sincronizaca
 ### 5. Habilite Realtime
 O schema ja configura o Realtime automaticamente para sincronizacao instantanea entre dispositivos.
 
+### Tabelas do Banco de Dados
+
+| Tabela | Descricao |
+|--------|-----------|
+| `categorias_gasto` | Categorias de gastos (Moradia, Saude, etc.) |
+| `gastos` | Gastos mensais com visibilidade por modo |
+| `renda` | Informacoes de renda (salario, beneficio, extras) |
+| `itens` | Lista de compras para mudanca |
+| `checklist_mudanca` | Tarefas pre-mudanca |
+| `cenarios` | Cenarios financeiros salvos |
+| `app_settings` | Configuracoes do app (modo atual, data de mudanca) |
+| `timeline_events` | Historico de eventos e alteracoes |
+
 ---
 
 ## Deploy
@@ -228,7 +258,11 @@ home-alone-tracker/
 │   │   ├── dashboard/          # Componentes do dashboard
 │   │   ├── mensal/             # Componentes de gastos mensais
 │   │   ├── compras/            # Componentes de compras
-│   │   ├── layout/             # Header, navegacao
+│   │   ├── layout/             # Header, navegacao, ModeIndicator
+│   │   │   ├── Header.tsx      # Cabecalho principal
+│   │   │   ├── ModeToggle.tsx  # Alternador de modo
+│   │   │   ├── ModeIndicator.tsx # Indicador visual do modo
+│   │   │   └── SettingsDropdown.tsx # Menu de configuracoes
 │   │   └── ui/                 # Componentes base (design system)
 │   │       ├── button.tsx      # Botoes com variantes
 │   │       ├── input.tsx       # Input base
@@ -243,18 +277,21 @@ home-alone-tracker/
 │   │       ├── card.tsx        # Container card
 │   │       ├── progress.tsx    # Barra de progresso
 │   │       ├── tabs.tsx        # Navegacao por abas
+│   │       ├── popover.tsx     # Menu popup contextual
 │   │       └── sheet.tsx       # Painel lateral
 │   ├── hooks/                  # Custom hooks
-│   │   ├── useAppState.ts      # Estado global
-│   │   └── useSupabase.ts      # Integracao Supabase
+│   │   ├── useAppState.ts      # Estado global (localStorage)
+│   │   └── useSupabase.ts      # Integracao Supabase (realtime)
 │   ├── lib/                    # Utilitarios
-│   │   ├── supabase.ts         # Cliente Supabase
+│   │   ├── supabase.ts         # Cliente Supabase + tipos DB
 │   │   ├── calculations.ts     # Calculos financeiros
 │   │   └── utils.ts            # Funcoes utilitarias (cn)
 │   ├── types/                  # Tipos TypeScript
+│   │   └── index.ts            # Interfaces e types
 │   └── data/                   # Dados iniciais (seed)
+│       └── seed.ts             # Dados mockados para dev
 ├── supabase/
-│   └── schema.sql              # Schema do banco de dados
+│   └── schema.sql              # Schema completo do banco
 └── public/                     # Assets estaticos
 ```
 
