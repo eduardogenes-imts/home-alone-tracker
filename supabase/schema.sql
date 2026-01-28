@@ -57,38 +57,41 @@ CREATE TABLE gastos (
   ativo BOOLEAN DEFAULT TRUE,
   observacao TEXT,
   ordem INT DEFAULT 0,
-  mode VARCHAR(20) DEFAULT 'living', -- 'preparation' ou 'living'
+  visibilidade VARCHAR(20) DEFAULT 'both', -- 'preparation', 'living' ou 'both'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Inserir gastos padrão para modo 'living' (morando sozinho)
-INSERT INTO gastos (categoria_id, nome, valor_minimo, valor_maximo, valor_atual, tipo, fonte, ativo, observacao, ordem, mode) VALUES
-  -- MORADIA
+-- Inserir gastos padrão com visibilidade
+INSERT INTO gastos (categoria_id, nome, valor_minimo, valor_maximo, valor_atual, tipo, fonte, ativo, observacao, ordem, visibilidade) VALUES
+  -- === GASTOS APENAS NO MODO PREPARAÇÃO ===
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Contribuição casa familiar', 300, 500, 400, 'fixo', 'salario', true, 'Ajuda de custo atual', 0, 'preparation'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Poupanca para mudanca', 200, 500, 350, 'fixo', 'salario', true, 'Meta mensal para compras', 0, 'preparation'),
+
+  -- === GASTOS APENAS NO MODO MORANDO SOZINHO ===
   ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Aluguel', 700, 700, 700, 'fixo', 'salario', true, 'Base', 1, 'living'),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Internet', 100, 100, 100, 'fixo', 'salario', true, 'Fixa', 2),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Celular', 60, 60, 60, 'fixo', 'salario', true, 'Fixa', 3),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Energia - base', 80, 110, 95, 'variavel', 'salario', true, 'Geladeira inverter + uso leve', 4),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Energia - ar-condicionado', 60, 120, 90, 'variavel', 'salario', false, 'Se usar inverter', 5),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Energia - chuveiro eletrico', 25, 40, 32, 'variavel', 'salario', false, 'Se tiver', 6),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Agua', 40, 70, 55, 'variavel', 'salario', true, 'Variavel', 7),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Gas (fogao a gas)', 45, 65, 55, 'variavel', 'salario', true, 'Variavel', 8),
-  -- SAUDE
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Saude e Bem-estar'), 'Academia', 270, 270, 270, 'fixo', 'salario', true, 'Mensal', 1),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Saude e Bem-estar'), 'Terapia', 160, 160, 160, 'fixo', 'salario', true, 'Mensal', 2),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Saude e Bem-estar'), 'Plano de saude (basico)', 120, 200, 160, 'fixo', 'salario', false, 'Individual, enfermaria', 3),
-  -- ASSINATURAS
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Assinaturas e Cuidados'), 'Crunchyroll', 15, 15, 15, 'fixo', 'salario', true, 'Mensal', 1),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Assinaturas e Cuidados'), 'Amazon Prime', 13, 13, 13, 'fixo', 'salario', true, 'Mensal', 2),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Assinaturas e Cuidados'), 'Corte de cabelo', 80, 80, 80, 'fixo', 'salario', true, 'Mensal', 3),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Assinaturas e Cuidados'), 'Sobrancelha', 50, 50, 50, 'fixo', 'salario', true, 'Mensal', 4),
-  -- INSUMOS
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Alimentacao (mercado)', 350, 500, 425, 'variavel', 'beneficio', true, 'Compras no mes', 1),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Alimentacao fora / delivery', 150, 300, 200, 'variavel', 'salario', true, 'Flexivel', 2),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Higiene pessoal', 60, 100, 75, 'variavel', 'beneficio', true, 'Recorrente', 3),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Limpeza da casa', 50, 80, 50, 'variavel', 'beneficio', true, 'Recorrente', 4),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Farmacia / imprevistos', 40, 80, 60, 'variavel', 'salario', true, 'Margem', 5),
-  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Manutencao basica', 30, 60, 45, 'variavel', 'salario', true, 'Reposicoes', 6);
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Internet', 100, 100, 100, 'fixo', 'salario', true, 'Fixa', 2, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Energia - base', 80, 110, 95, 'variavel', 'salario', true, 'Geladeira inverter + uso leve', 4, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Energia - ar-condicionado', 60, 120, 90, 'variavel', 'salario', false, 'Se usar inverter', 5, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Energia - chuveiro eletrico', 25, 40, 32, 'variavel', 'salario', false, 'Se tiver', 6, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Agua', 40, 70, 55, 'variavel', 'salario', true, 'Variavel', 7, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Gas (fogao a gas)', 45, 65, 55, 'variavel', 'salario', true, 'Variavel', 8, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Alimentacao (mercado)', 350, 500, 425, 'variavel', 'beneficio', true, 'Compras no mes', 1, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Limpeza da casa', 50, 80, 50, 'variavel', 'beneficio', true, 'Recorrente', 4, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Manutencao basica', 30, 60, 45, 'variavel', 'salario', true, 'Reposicoes', 6, 'living'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Saude e Bem-estar'), 'Plano de saude (basico)', 120, 200, 160, 'fixo', 'salario', false, 'Individual, enfermaria', 3, 'living'),
+
+  -- === GASTOS EM AMBOS OS MODOS ===
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Moradia'), 'Celular', 60, 60, 60, 'fixo', 'salario', true, 'Fixa', 3, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Saude e Bem-estar'), 'Academia', 270, 270, 270, 'fixo', 'salario', true, 'Mensal', 1, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Saude e Bem-estar'), 'Terapia', 160, 160, 160, 'fixo', 'salario', true, 'Mensal', 2, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Assinaturas e Cuidados'), 'Crunchyroll', 15, 15, 15, 'fixo', 'salario', true, 'Mensal', 1, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Assinaturas e Cuidados'), 'Amazon Prime', 13, 13, 13, 'fixo', 'salario', true, 'Mensal', 2, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Assinaturas e Cuidados'), 'Corte de cabelo', 80, 80, 80, 'fixo', 'salario', true, 'Mensal', 3, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Assinaturas e Cuidados'), 'Sobrancelha', 50, 50, 50, 'fixo', 'salario', true, 'Mensal', 4, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Alimentacao fora / delivery', 150, 300, 200, 'variavel', 'salario', true, 'Flexivel', 2, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Higiene pessoal', 60, 100, 75, 'variavel', 'beneficio', true, 'Recorrente', 3, 'both'),
+  ((SELECT id FROM categorias_gasto WHERE nome = 'Insumos Mensais'), 'Farmacia / imprevistos', 40, 80, 60, 'variavel', 'salario', true, 'Margem', 5, 'both');
 
 -- =============================================
 -- TABELA: itens
@@ -166,7 +169,7 @@ CREATE TABLE app_settings (
 );
 
 -- Inserir configuração inicial
-INSERT INTO app_settings (target_move_date, current_mode) VALUES ('2025-09-01', 'preparation');
+INSERT INTO app_settings (target_move_date, current_mode) VALUES ('2026-09-26', 'preparation');
 
 -- =============================================
 -- TABELA: timeline_events
@@ -197,7 +200,7 @@ CREATE TABLE checklist_mudanca (
 
 -- Inserir checklist padrão
 INSERT INTO checklist_mudanca (descricao, data_alvo, concluido, observacao, ordem) VALUES
-  ('Confirmar data de mudanca', '2025-09-01', false, 'Setembro', 1),
+  ('Confirmar data de mudanca', '2026-09-26', false, 'Setembro 2026', 1),
   ('Agendar vistoria do imovel', NULL, false, NULL, 2),
   ('Definir data da compra de geladeira e fogao', NULL, false, 'Fazer caixinha', 3),
   ('Combinar mesa de jantar com Daniel', NULL, false, NULL, 4),

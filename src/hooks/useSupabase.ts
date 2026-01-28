@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getSupabase, isSupabaseConfigured, DbItem, DbGasto, DbRenda, DbCategoriaGasto, DbChecklistItem, DbCenario } from '@/lib/supabase';
+import { getSupabase, DbItem, DbGasto, DbRenda, DbCategoriaGasto, DbChecklistItem, DbCenario, DbAppSettings, DbTimelineEvent } from '@/lib/supabase';
 import {
   Item,
   Gasto,
@@ -9,13 +9,13 @@ import {
   Renda,
   ChecklistItem,
   Cenario,
-  TipoGasto,
-  FonteGasto,
   AppSettings,
   TimelineEvent,
   Budgets,
+  Rendas,
+  AppMode,
 } from '@/types';
-import { settingsSeed, budgetsSeed } from '@/data/seed';
+import { settingsSeed, rendasSeed } from '@/data/seed';
 
 // Funcoes de conversao DB -> App
 function dbItemToItem(db: DbItem): Item {
@@ -49,6 +49,7 @@ function dbGastoToGasto(db: DbGasto): Gasto {
     ativo: db.ativo,
     observacao: db.observacao,
     ordem: db.ordem,
+    visibilidade: db.visibilidade || 'both',
   };
 }
 
@@ -93,6 +94,25 @@ function dbCenarioToCenario(db: DbCenario): Cenario {
   };
 }
 
+function dbSettingsToSettings(db: DbAppSettings): AppSettings & { id: string } {
+  return {
+    id: db.id,
+    targetMoveDate: db.target_move_date,
+    currentMode: db.current_mode,
+  };
+}
+
+function dbTimelineToTimeline(db: DbTimelineEvent): TimelineEvent {
+  return {
+    id: db.id,
+    type: db.type,
+    date: db.date,
+    title: db.title,
+    description: db.description || undefined,
+    metadata: db.metadata || undefined,
+  };
+}
+
 export function useSupabase() {
   const [itens, setItens] = useState<Item[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
@@ -101,8 +121,9 @@ export function useSupabase() {
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [cenarios, setCenarios] = useState<Cenario[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [settingsId, setSettingsId] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-  const [budgets, setBudgets] = useState<Budgets | null>(null);
+  const [rendas, setRendas] = useState<Rendas | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -129,6 +150,8 @@ export function useSupabase() {
           supabase.from('renda').select('*').order('created_at', { ascending: false }).limit(1),
           supabase.from('checklist_mudanca').select('*').order('ordem'),
           supabase.from('cenarios').select('*').order('created_at', { ascending: false }),
+          supabase.from('app_settings').select('*').limit(1),
+          supabase.from('timeline_events').select('*').order('date', { ascending: false }),
         ]);
 
         const [
@@ -138,6 +161,8 @@ export function useSupabase() {
           { data: rendaData, error: rendaError },
           { data: checklistData, error: checklistError },
           { data: cenariosData, error: cenariosError },
+          { data: settingsData, error: settingsError },
+          { data: timelineData, error: timelineError },
         ] = await Promise.race([dataPromise, timeoutPromise]) as any;
 
         if (itensError) throw itensError;
@@ -146,6 +171,8 @@ export function useSupabase() {
         if (rendaError) throw rendaError;
         if (checklistError) throw checklistError;
         if (cenariosError) throw cenariosError;
+        if (settingsError) throw settingsError;
+        if (timelineError) throw timelineError;
 
         setItens((itensData || []).map(dbItemToItem));
         setGastos((gastosData || []).map(dbGastoToGasto));
@@ -153,6 +180,16 @@ export function useSupabase() {
         setRenda(rendaData && rendaData.length > 0 ? dbRendaToRenda(rendaData[0]) : null);
         setChecklist((checklistData || []).map(dbChecklistToChecklist));
         setCenarios((cenariosData || []).map(dbCenarioToCenario));
+
+        // Settings
+        if (settingsData && settingsData.length > 0) {
+          const dbSettings = dbSettingsToSettings(settingsData[0]);
+          setSettingsId(dbSettings.id);
+          setSettings({ targetMoveDate: dbSettings.targetMoveDate, currentMode: dbSettings.currentMode });
+        }
+
+        // Timeline
+        setTimeline((timelineData || []).map(dbTimelineToTimeline));
 
         setIsLoaded(true);
       } catch (err) {
@@ -208,6 +245,26 @@ export function useSupabase() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'cenarios' }, async () => {
           const { data } = await supabase.from('cenarios').select('*').order('created_at', { ascending: false });
           if (data) setCenarios(data.map(dbCenarioToCenario));
+        })
+        .subscribe(),
+
+      supabase
+        .channel('settings-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, async () => {
+          const { data } = await supabase.from('app_settings').select('*').limit(1);
+          if (data && data.length > 0) {
+            const dbSettings = dbSettingsToSettings(data[0]);
+            setSettingsId(dbSettings.id);
+            setSettings({ targetMoveDate: dbSettings.targetMoveDate, currentMode: dbSettings.currentMode });
+          }
+        })
+        .subscribe(),
+
+      supabase
+        .channel('timeline-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_events' }, async () => {
+          const { data } = await supabase.from('timeline_events').select('*').order('date', { ascending: false });
+          if (data) setTimeline(data.map(dbTimelineToTimeline));
         })
         .subscribe(),
     ];
@@ -321,6 +378,7 @@ export function useSupabase() {
       ativo: gasto.ativo,
       observacao: gasto.observacao,
       ordem: gasto.ordem,
+      visibilidade: gasto.visibilidade || 'both',
     };
 
     const { data, error } = await supabase.from('gastos').insert(dbGasto).select().single();
@@ -329,19 +387,7 @@ export function useSupabase() {
       return;
     }
 
-    const newGasto: Gasto = {
-      id: data.id,
-      categoriaId: data.categoria_id,
-      nome: data.nome,
-      valorMinimo: data.valor_minimo,
-      valorMaximo: data.valor_maximo,
-      valorAtual: data.valor_atual,
-      tipo: data.tipo as TipoGasto,
-      fonte: data.fonte as FonteGasto,
-      ativo: data.ativo,
-      observacao: data.observacao,
-      ordem: data.ordem,
-    };
+    const newGasto: Gasto = dbGastoToGasto(data);
 
     setGastos(prev => [...prev, newGasto]);
   }, []);
@@ -361,6 +407,7 @@ export function useSupabase() {
     if (updates.ativo !== undefined) dbUpdates.ativo = updates.ativo;
     if (updates.observacao !== undefined) dbUpdates.observacao = updates.observacao;
     if (updates.ordem !== undefined) dbUpdates.ordem = updates.ordem;
+    if (updates.visibilidade !== undefined) dbUpdates.visibilidade = updates.visibilidade;
 
     const { error } = await supabase.from('gastos').update(dbUpdates).eq('id', id);
     if (error) {
@@ -562,18 +609,76 @@ export function useSupabase() {
   // Valores padrão para settings e timeline (se não carregados do Supabase)
   const settingsFinal = settings || settingsSeed;
   const timelineFinal = timeline || [];
-  const budgetsFinal = budgets || budgetsSeed;
+  const rendasFinal = rendas || rendasSeed;
 
-  // Ações placeholder para settings e timeline (implementar depois se necessário)
-  const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+  // Função para filtrar gastos por modo
+  const filterGastosByMode = (gastosToFilter: Gasto[], mode: AppMode): Gasto[] => {
+    return gastosToFilter.filter(
+      (gasto) => gasto.visibilidade === mode || gasto.visibilidade === 'both' || !gasto.visibilidade
+    );
+  };
+
+  // Budgets computados para compatibilidade (derivado dos dados)
+  const budgetsFinal: Budgets = {
+    preparation: {
+      renda: rendasFinal.preparation,
+      gastos: filterGastosByMode(gastos, 'preparation'),
+    },
+    living: {
+      renda: rendasFinal.living,
+      gastos: filterGastosByMode(gastos, 'living'),
+    },
+  };
+
+  // === SETTINGS ===
+  const updateSettings = useCallback(async (updates: Partial<AppSettings>) => {
+    const supabase = getSupabase();
+
+    // Atualizar estado local imediatamente para UX responsiva
     setSettings((prev) => ({ ...(prev || settingsSeed), ...updates }));
-  }, []);
 
-  const addTimelineEvent = useCallback((event: Omit<TimelineEvent, 'id'>) => {
-    setTimeline((prev) => [
-      { ...event, id: `timeline-${Date.now()}` },
-      ...prev,
-    ]);
+    if (!supabase || !settingsId) return;
+
+    const dbUpdates: Partial<DbAppSettings> = {};
+    if (updates.targetMoveDate !== undefined) dbUpdates.target_move_date = updates.targetMoveDate;
+    if (updates.currentMode !== undefined) dbUpdates.current_mode = updates.currentMode;
+
+    const { error } = await supabase.from('app_settings').update(dbUpdates).eq('id', settingsId);
+    if (error) {
+      console.error('Erro ao atualizar settings:', error);
+    }
+  }, [settingsId]);
+
+  // === TIMELINE ===
+  const addTimelineEvent = useCallback(async (event: Omit<TimelineEvent, 'id'>) => {
+    const supabase = getSupabase();
+
+    if (!supabase) {
+      // Fallback local se não tiver Supabase
+      setTimeline((prev) => [
+        { ...event, id: `timeline-${Date.now()}` },
+        ...prev,
+      ]);
+      return;
+    }
+
+    const dbEvent = {
+      type: event.type,
+      date: event.date,
+      title: event.title,
+      description: event.description || null,
+      metadata: event.metadata || null,
+    };
+
+    const { data, error } = await supabase.from('timeline_events').insert(dbEvent).select().single();
+    if (error) {
+      console.error('Erro ao adicionar evento na timeline:', error);
+      return;
+    }
+
+    if (data) {
+      setTimeline((prev) => [dbTimelineToTimeline(data), ...prev]);
+    }
   }, []);
 
   return {
@@ -582,6 +687,7 @@ export function useSupabase() {
     gastos,
     categoriasGasto,
     renda: rendaFinal,
+    rendas: rendasFinal,
     checklist,
     cenarios,
     settings: settingsFinal,

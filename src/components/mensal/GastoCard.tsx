@@ -13,7 +13,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { GastoComCategoria } from '@/types';
 import { formatarMoeda } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Home, Briefcase, ArrowLeftRight } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { CategoriaGasto, TipoGasto, FonteGasto } from '@/types';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { CategoriaGasto, TipoGasto, FonteGasto, GastoVisibilidade } from '@/types';
 
 interface GastoCardProps {
   gasto: GastoComCategoria;
@@ -49,6 +54,7 @@ export function GastoCard({ gasto, categorias, onUpdate, onToggle, onDelete }: G
     tipo: gasto.tipo,
     fonte: gasto.fonte,
     observacao: gasto.observacao || '',
+    visibilidade: gasto.visibilidade || 'both' as GastoVisibilidade,
   });
 
   // Atualiza valor temporário quando o gasto muda
@@ -63,6 +69,7 @@ export function GastoCard({ gasto, categorias, onUpdate, onToggle, onDelete }: G
       tipo: gasto.tipo,
       fonte: gasto.fonte,
       observacao: gasto.observacao || '',
+      visibilidade: gasto.visibilidade || 'both',
     });
   }, [gasto]);
 
@@ -80,6 +87,7 @@ export function GastoCard({ gasto, categorias, onUpdate, onToggle, onDelete }: G
         tipo: gastoEditado.tipo,
         fonte: gastoEditado.fonte,
         observacao: gastoEditado.observacao || null,
+        visibilidade: gastoEditado.visibilidade,
       });
       setEditandoCompleto(false);
     } finally {
@@ -115,6 +123,39 @@ export function GastoCard({ gasto, categorias, onUpdate, onToggle, onDelete }: G
 
   const temFaixa = gasto.valorMinimo !== null && gasto.valorMaximo !== null && gasto.valorMinimo !== gasto.valorMaximo;
 
+  // Função para alternar visibilidade diretamente
+  const handleVisibilidadeChange = (novaVisibilidade: GastoVisibilidade) => {
+    onUpdate(gasto.id, { visibilidade: novaVisibilidade });
+  };
+
+  // Config de visibilidade para UI
+  const visibilidadeConfig = {
+    both: {
+      label: 'Ambos',
+      icon: ArrowLeftRight,
+      bgClass: 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700',
+      textClass: 'text-slate-600 dark:text-slate-400',
+      borderClass: 'border-slate-300 dark:border-slate-600',
+    },
+    preparation: {
+      label: 'Prep.',
+      icon: Home,
+      bgClass: 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50',
+      textClass: 'text-indigo-600 dark:text-indigo-400',
+      borderClass: 'border-indigo-300 dark:border-indigo-700',
+    },
+    living: {
+      label: 'Morando',
+      icon: Briefcase,
+      bgClass: 'bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50',
+      textClass: 'text-emerald-600 dark:text-emerald-400',
+      borderClass: 'border-emerald-300 dark:border-emerald-700',
+    },
+  };
+
+  const currentVisibilidade = gasto.visibilidade || 'both';
+  const currentConfig = visibilidadeConfig[currentVisibilidade];
+
   // Opções para os selects
   const categoriasOptions = categorias.map((cat) => ({
     value: cat.id,
@@ -130,6 +171,12 @@ export function GastoCard({ gasto, categorias, onUpdate, onToggle, onDelete }: G
   const fonteOptions = [
     { value: 'salario', label: 'Salário' },
     { value: 'beneficio', label: 'Benefício' },
+  ];
+
+  const visibilidadeOptions = [
+    { value: 'both', label: 'Ambos os modos' },
+    { value: 'preparation', label: 'Só Preparação' },
+    { value: 'living', label: 'Só Morando' },
   ];
 
   return (
@@ -158,6 +205,50 @@ export function GastoCard({ gasto, categorias, onUpdate, onToggle, onDelete }: G
                   Beneficio
                 </Badge>
               )}
+              {/* Seletor de Visibilidade - sempre visível e clicável */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium border transition-colors cursor-pointer',
+                      currentConfig.bgClass,
+                      currentConfig.textClass,
+                      currentConfig.borderClass
+                    )}
+                    title="Clique para alterar em quais modos este gasto aparece"
+                  >
+                    <currentConfig.icon className="h-3 w-3" />
+                    <span className="hidden sm:inline">{currentConfig.label}</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-1" align="start">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs text-muted-foreground px-2 py-1">Aparece em:</p>
+                    {(Object.entries(visibilidadeConfig) as [GastoVisibilidade, typeof currentConfig][]).map(([key, config]) => (
+                      <button
+                        key={key}
+                        onClick={() => handleVisibilidadeChange(key)}
+                        className={cn(
+                          'flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors w-full text-left',
+                          currentVisibilidade === key
+                            ? cn(config.bgClass, config.textClass, 'font-medium')
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        )}
+                      >
+                        <config.icon className="h-4 w-4" />
+                        <span>
+                          {key === 'both' && 'Ambos os modos'}
+                          {key === 'preparation' && 'Só Preparação'}
+                          {key === 'living' && 'Só Morando'}
+                        </span>
+                        {currentVisibilidade === key && (
+                          <span className="ml-auto text-xs">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Dialog open={editandoCompleto} onOpenChange={setEditandoCompleto}>
                 <DialogTrigger asChild>
                   <Button
@@ -247,6 +338,15 @@ export function GastoCard({ gasto, categorias, onUpdate, onToggle, onDelete }: G
                         }}
                       />
                     )}
+
+                    {/* Visibilidade - em qual modo aparece */}
+                    <Select
+                      label="Aparece em"
+                      value={gastoEditado.visibilidade}
+                      onChange={(e) => setGastoEditado({ ...gastoEditado, visibilidade: e.target.value as GastoVisibilidade })}
+                      options={visibilidadeOptions}
+                      helperText="Em quais modos este gasto será contabilizado"
+                    />
 
                     {/* Observação */}
                     <FormField

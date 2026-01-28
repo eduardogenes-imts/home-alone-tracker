@@ -9,28 +9,30 @@ import {
   Renda,
   ChecklistItem,
   Cenario,
-  Budgets,
   AppSettings,
   TimelineEvent,
   AppMode,
+  Rendas,
 } from '@/types';
 import {
   itensSeed,
   categoriasGastoSeed,
   checklistSeed,
-  budgetsSeed,
+  gastosSeed,
+  rendasSeed,
   settingsSeed,
 } from '@/data/seed';
 import { useSupabase } from './useSupabase';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 const STORAGE_KEY = 'home-alone-tracker';
-const STORAGE_VERSION = 2; // Versão para migração de dados
+const STORAGE_VERSION = 3; // Versão 3: gastos unificados com visibilidade
 
 interface AppState {
   version: number;
   itens: Item[];
-  budgets: Budgets;
+  gastos: Gasto[]; // Lista unificada de gastos
+  rendas: Rendas; // Rendas separadas por modo
   categoriasGasto: CategoriaGasto[];
   checklist: ChecklistItem[];
   cenarios: Cenario[];
@@ -41,13 +43,21 @@ interface AppState {
 const initialState: AppState = {
   version: STORAGE_VERSION,
   itens: itensSeed,
-  budgets: budgetsSeed,
+  gastos: gastosSeed,
+  rendas: rendasSeed,
   categoriasGasto: categoriasGastoSeed,
   checklist: checklistSeed,
   cenarios: [],
   settings: settingsSeed,
   timeline: [],
 };
+
+// Função para filtrar gastos por modo
+function filterGastosByMode(gastos: Gasto[], mode: AppMode): Gasto[] {
+  return gastos.filter(
+    (gasto) => gasto.visibilidade === mode || gasto.visibilidade === 'both'
+  );
+}
 
 // Hook para localStorage (fallback quando Supabase nao esta configurado)
 function useLocalStorageState() {
@@ -61,30 +71,12 @@ function useLocalStorageState() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          
-          // Migração de dados antigos (versão 1 para versão 2)
+
+          // Migração de dados antigos (versão < 3 para versão 3)
           if (!parsed.version || parsed.version < STORAGE_VERSION) {
-            console.log('Migrando dados para nova versão...');
-            const migratedState: AppState = {
-              version: STORAGE_VERSION,
-              itens: parsed.itens || initialState.itens,
-              budgets: {
-                preparation: {
-                  renda: budgetsSeed.preparation.renda,
-                  gastos: budgetsSeed.preparation.gastos,
-                },
-                living: {
-                  renda: parsed.renda || initialState.budgets.living.renda,
-                  gastos: parsed.gastos || initialState.budgets.living.gastos,
-                },
-              },
-              categoriasGasto: parsed.categoriasGasto || initialState.categoriasGasto,
-              checklist: parsed.checklist || initialState.checklist,
-              cenarios: parsed.cenarios || [],
-              settings: parsed.settings || initialState.settings,
-              timeline: parsed.timeline || [],
-            };
-            setState(migratedState);
+            console.log('Migrando dados para versão 3 (gastos unificados)...');
+            // Reset para estado inicial com nova estrutura
+            setState(initialState);
           } else {
             setState({
               ...initialState,
@@ -107,18 +99,23 @@ function useLocalStorageState() {
     }
   }, [state, isLoaded]);
 
-  // Budget ativo baseado no modo atual
-  const activeBudget = useMemo(() => {
-    return state.budgets[state.settings.currentMode];
-  }, [state.budgets, state.settings.currentMode]);
+  // Renda ativa baseada no modo atual
+  const activeRenda = useMemo(() => {
+    return state.rendas[state.settings.currentMode];
+  }, [state.rendas, state.settings.currentMode]);
+
+  // Gastos filtrados pelo modo atual
+  const gastosAtivos = useMemo(() => {
+    return filterGastosByMode(state.gastos, state.settings.currentMode);
+  }, [state.gastos, state.settings.currentMode]);
 
   // Gastos com categoria do budget ativo
   const gastosComCategoria: GastoComCategoria[] = useMemo(() => {
-    return activeBudget.gastos.map((gasto) => ({
+    return gastosAtivos.map((gasto) => ({
       ...gasto,
       categoria: state.categoriasGasto.find((c) => c.id === gasto.categoriaId) || state.categoriasGasto[0],
     }));
-  }, [activeBudget.gastos, state.categoriasGasto]);
+  }, [gastosAtivos, state.categoriasGasto]);
 
   // === ITENS ===
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -197,31 +194,21 @@ function useLocalStorageState() {
       ...gasto,
       id: `gasto-${Date.now()}`,
     };
-    setState((prev) => {
-      const mode = prev.settings.currentMode;
-      return {
-        ...prev,
-        budgets: {
-          ...prev.budgets,
-          [mode]: {
-            ...prev.budgets[mode],
-            gastos: [...prev.budgets[mode].gastos, newGasto],
-          },
-        },
-      };
-    });
+    setState((prev) => ({
+      ...prev,
+      gastos: [...prev.gastos, newGasto],
+    }));
   }, []);
 
   const updateGasto = useCallback((id: string, updates: Partial<Gasto>) => {
     setState((prev) => {
-      const mode = prev.settings.currentMode;
-      const oldGasto = prev.budgets[mode].gastos.find((g) => g.id === id);
-      const newGastos = prev.budgets[mode].gastos.map((gasto) =>
+      const oldGasto = prev.gastos.find((g) => g.id === id);
+      const newGastos = prev.gastos.map((gasto) =>
         gasto.id === id ? { ...gasto, ...updates } : gasto
       );
 
       // Registrar mudança significativa no timeline
-      const shouldLog = oldGasto && updates.valorAtual !== undefined && 
+      const shouldLog = oldGasto && updates.valorAtual !== undefined &&
         Math.abs(updates.valorAtual - oldGasto.valorAtual) >= oldGasto.valorAtual * 0.1;
 
       const timelineEvent: TimelineEvent | null = shouldLog
@@ -231,56 +218,32 @@ function useLocalStorageState() {
             date: new Date().toISOString(),
             title: `Orçamento alterado: ${oldGasto.nome}`,
             description: `De R$ ${oldGasto.valorAtual.toFixed(2)} para R$ ${updates.valorAtual!.toFixed(2)}`,
-            metadata: { gastoId: id, mode, oldValue: oldGasto.valorAtual, newValue: updates.valorAtual },
+            metadata: { gastoId: id, oldValue: oldGasto.valorAtual, newValue: updates.valorAtual },
           }
         : null;
 
       return {
         ...prev,
-        budgets: {
-          ...prev.budgets,
-          [mode]: {
-            ...prev.budgets[mode],
-            gastos: newGastos,
-          },
-        },
+        gastos: newGastos,
         timeline: timelineEvent ? [timelineEvent, ...prev.timeline] : prev.timeline,
       };
     });
   }, []);
 
   const deleteGasto = useCallback((id: string) => {
-    setState((prev) => {
-      const mode = prev.settings.currentMode;
-      return {
-        ...prev,
-        budgets: {
-          ...prev.budgets,
-          [mode]: {
-            ...prev.budgets[mode],
-            gastos: prev.budgets[mode].gastos.filter((gasto) => gasto.id !== id),
-          },
-        },
-      };
-    });
+    setState((prev) => ({
+      ...prev,
+      gastos: prev.gastos.filter((gasto) => gasto.id !== id),
+    }));
   }, []);
 
   const toggleGastoAtivo = useCallback((id: string) => {
-    setState((prev) => {
-      const mode = prev.settings.currentMode;
-      return {
-        ...prev,
-        budgets: {
-          ...prev.budgets,
-          [mode]: {
-            ...prev.budgets[mode],
-            gastos: prev.budgets[mode].gastos.map((gasto) =>
-              gasto.id === id ? { ...gasto, ativo: !gasto.ativo } : gasto
-            ),
-          },
-        },
-      };
-    });
+    setState((prev) => ({
+      ...prev,
+      gastos: prev.gastos.map((gasto) =>
+        gasto.id === id ? { ...gasto, ativo: !gasto.ativo } : gasto
+      ),
+    }));
   }, []);
 
   // === RENDA ===
@@ -289,12 +252,9 @@ function useLocalStorageState() {
       const mode = prev.settings.currentMode;
       return {
         ...prev,
-        budgets: {
-          ...prev.budgets,
-          [mode]: {
-            ...prev.budgets[mode],
-            renda: { ...prev.budgets[mode].renda, ...updates },
-          },
+        rendas: {
+          ...prev.rendas,
+          [mode]: { ...prev.rendas[mode], ...updates },
         },
       };
     });
@@ -438,18 +398,32 @@ function useLocalStorageState() {
     }
   }, []);
 
+  // Budgets computados para compatibilidade (derivado dos dados unificados)
+  const budgets = useMemo(() => ({
+    preparation: {
+      renda: state.rendas.preparation,
+      gastos: filterGastosByMode(state.gastos, 'preparation'),
+    },
+    living: {
+      renda: state.rendas.living,
+      gastos: filterGastosByMode(state.gastos, 'living'),
+    },
+  }), [state.gastos, state.rendas]);
+
   return {
     // Estado
     itens: state.itens,
-    gastos: activeBudget.gastos,
+    gastos: gastosAtivos,
+    allGastos: state.gastos, // Todos os gastos (para edição)
     gastosComCategoria,
     categoriasGasto: state.categoriasGasto,
-    renda: activeBudget.renda,
+    renda: activeRenda,
+    rendas: state.rendas,
     checklist: state.checklist,
     cenarios: state.cenarios,
     settings: state.settings,
     timeline: state.timeline,
-    budgets: state.budgets,
+    budgets, // Para compatibilidade
     isLoaded,
 
     // Acoes - Itens
@@ -534,9 +508,11 @@ export function useAppState() {
       // Estado
       itens: supabaseState.itens,
       gastos: activeBudgetSupabase.gastos,
+      allGastos: supabaseState.gastos || [],
       gastosComCategoria: gastosComCategoriaActive,
       categoriasGasto: supabaseState.categoriasGasto,
       renda: activeBudgetSupabase.renda,
+      rendas: supabaseState.rendas,
       checklist: supabaseState.checklist,
       cenarios: supabaseState.cenarios,
       settings: supabaseState.settings,

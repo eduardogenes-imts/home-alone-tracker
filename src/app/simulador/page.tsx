@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useMemo } from 'react';
 import { useApp } from '@/components/AppProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { ModeIndicator } from '@/components/layout/ModeIndicator';
 import {
   Dialog,
   DialogContent,
@@ -26,9 +26,15 @@ import {
 } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { SlidersHorizontal, Save, RotateCcw, TrendingUp, TrendingDown } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
 
 export default function SimuladorPage() {
-  const { gastos, renda, categoriasGasto, cenarios, settings, salvarCenario, deleteCenario, isLoaded } = useApp();
+  const { gastos, renda, categoriasGasto, cenarios, salvarCenario, deleteCenario, isLoaded } = useApp();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Estado local para simulacao
   const [gastosSimulados, setGastosSimulados] = useState<Record<string, { valorAtual: number; ativo: boolean }>>({});
@@ -36,9 +42,6 @@ export default function SimuladorPage() {
   const [dialogSalvar, setDialogSalvar] = useState(false);
   const [nomeCenario, setNomeCenario] = useState('');
   const [descricaoCenario, setDescricaoCenario] = useState('');
-
-  const isPreparation = settings.currentMode === 'preparation';
-  const modeLabel = isPreparation ? 'Preparação' : 'Morando Sozinho';
 
   // Inicializar estado de simulacao se vazio
   useMemo(() => {
@@ -133,45 +136,35 @@ export default function SimuladorPage() {
     setDescricaoCenario('');
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !mounted) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      <div className="flex items-center justify-center min-h-[50vh]" suppressHydrationWarning>
+        <div className="animate-pulse text-muted-foreground" suppressHydrationWarning>Carregando...</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="space-y-1">
             <h1 className="text-2xl font-bold">Simulador</h1>
-            <Badge
-              variant="outline"
-              className={cn(
-                'text-xs',
-                isPreparation
-                  ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
-                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
-              )}
-            >
-              {modeLabel}
-            </Badge>
+            <p className="text-sm text-muted-foreground">
+              Simule diferentes cenários financeiros
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Simule diferentes cenários financeiros para o orçamento de {modeLabel.toLowerCase()}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleResetar}>
-            <RotateCcw className="h-4 w-4 mr-1" />
-            Resetar
-          </Button>
-          <Button size="sm" onClick={() => setDialogSalvar(true)}>
-            <Save className="h-4 w-4 mr-1" />
-            Salvar
-          </Button>
+          <div className="flex items-center gap-2">
+            <ModeIndicator compact showToggle={false} />
+            <Button variant="outline" size="sm" onClick={handleResetar}>
+              <RotateCcw className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Resetar</span>
+            </Button>
+            <Button size="sm" onClick={() => setDialogSalvar(true)}>
+              <Save className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Salvar</span>
+            </Button>
+          </div>
         </div>
       </div>
 

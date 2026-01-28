@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useMemo } from 'react';
 import { useApp } from '@/components/AppProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ItemCard } from '@/components/compras/ItemCard';
@@ -22,6 +21,7 @@ import {
 import { FormField } from '@/components/ui/form-field';
 import { Select } from '@/components/ui/select';
 import { MoneyInput } from '@/components/ui/money-input';
+import { useEffect, useState, useMemo } from 'react';
 
 // Opções para os selects
 const categoriaOptions = [
@@ -52,6 +52,11 @@ const statusOptions = [
 
 export default function ComprasPage() {
   const { itens, settings, adicionarPoupanca, marcarComoComprado, updateItem, addItem, deleteItem, isLoaded } = useApp();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [faseAtiva, setFaseAtiva] = useState<FaseItem | 'todas'>('todas');
   const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaItem | 'todas'>('todas');
@@ -156,10 +161,10 @@ export default function ComprasPage() {
     return { total, comprados, valorComprado, valorPoupado, valorEstimadoPendente };
   }, [itens]);
 
-  if (!isLoaded) {
+  if (!isLoaded || !mounted) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-pulse text-slate-500">Carregando...</div>
+      <div className="flex items-center justify-center min-h-[50vh]" suppressHydrationWarning>
+        <div className="animate-pulse text-slate-500" suppressHydrationWarning>Carregando...</div>
       </div>
     );
   }

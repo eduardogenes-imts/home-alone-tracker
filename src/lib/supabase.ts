@@ -54,6 +54,7 @@ export interface DbGasto {
   ativo: boolean;
   observacao: string | null;
   ordem: number;
+  visibilidade: 'preparation' | 'living' | 'both';
   created_at: string;
   updated_at: string;
 }
@@ -93,5 +94,23 @@ export interface DbCenario {
   descricao: string | null;
   configuracao: Record<string, unknown>;
   saldo_resultante: number;
+  created_at: string;
+}
+
+export interface DbAppSettings {
+  id: string;
+  target_move_date: string | null;
+  current_mode: 'preparation' | 'living';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbTimelineEvent {
+  id: string;
+  type: 'purchase' | 'checklist' | 'budget_change' | 'date_change' | 'note';
+  date: string;
+  title: string;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }

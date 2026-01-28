@@ -5,6 +5,7 @@ import { CategoriaGasto } from '@/types';
 import { formatarMoeda, formatarPercentual, CHART_COLORS } from '@/lib/calculations';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { PieChart as PieChartIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface GastosChartProps {
   gastosPorCategoria: {
@@ -15,12 +16,38 @@ interface GastosChartProps {
 }
 
 export function GastosChart({ gastosPorCategoria }: GastosChartProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const data = gastosPorCategoria.map((item, index) => ({
     name: item.categoria.nome,
     value: item.total,
     percentual: item.percentual,
     color: CHART_COLORS.palette[index % CHART_COLORS.palette.length],
   }));
+
+  if (!mounted) {
+    return (
+      <Card className="border-0 shadow-sm bg-slate-100 dark:bg-slate-800">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2 text-slate-800 dark:text-slate-200">
+            <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+              <PieChartIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            Gastos por Categoria
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-56 min-h-[224px] w-full flex items-center justify-center">
+            <div className="animate-pulse w-32 h-32 rounded-full border-8 border-slate-200 dark:border-slate-700" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (data.length === 0) {
     return (

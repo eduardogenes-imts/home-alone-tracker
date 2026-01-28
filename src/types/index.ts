@@ -5,6 +5,7 @@ export type PrioridadeItem = 'essencial' | 'alta' | 'media' | 'baixa';
 export type StatusItem = 'pendente' | 'pesquisando' | 'poupando' | 'comprado';
 export type TipoGasto = 'fixo' | 'variavel';
 export type FonteGasto = 'salario' | 'beneficio';
+export type GastoVisibilidade = 'preparation' | 'living' | 'both';
 
 // Modos do app: preparação (antes de morar sozinho) e morando sozinho
 export type AppMode = 'preparation' | 'living';
@@ -50,6 +51,7 @@ export interface Gasto {
   ativo: boolean;
   observacao: string | null;
   ordem: number;
+  visibilidade: GastoVisibilidade; // em qual modo o gasto aparece
 }
 
 // Gasto agrupado por categoria (para exibicao)
@@ -144,13 +146,19 @@ export interface AppSettings {
   currentMode: AppMode; // modo ativo: preparação ou morando sozinho
 }
 
+// Rendas separadas por modo (podem ter valores diferentes)
+export interface Rendas {
+  preparation: Renda;
+  living: Renda;
+}
+
 // Conjunto de orçamento (renda + gastos) para um modo específico
 export interface BudgetData {
   renda: Renda;
   gastos: Gasto[];
 }
 
-// Orçamentos separados por modo
+// Orçamentos separados por modo (mantido para compatibilidade)
 export interface Budgets {
   preparation: BudgetData; // orçamento atual (antes de morar sozinho)
   living: BudgetData; // orçamento projetado (morando sozinho)

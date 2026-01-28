@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GastoCard } from './GastoCard';
-import { GastoComCategoria, CategoriaGasto, Gasto, TipoGasto, FonteGasto } from '@/types';
+import { GastoComCategoria, CategoriaGasto, Gasto, TipoGasto, FonteGasto, GastoVisibilidade } from '@/types';
 import { formatarMoeda } from '@/lib/calculations';
 import { Plus } from 'lucide-react';
 import {
@@ -46,6 +46,7 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
     ativo: true,
     observacao: null as string | null,
     ordem: 0,
+    visibilidade: 'both' as GastoVisibilidade,
   });
 
   const handleAdicionar = async () => {
@@ -77,6 +78,7 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
         ativo: true,
         observacao: null,
         ordem: 0,
+        visibilidade: 'both',
       });
       setDialogAberto(false);
     } finally {
@@ -114,6 +116,12 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
   const fonteOptions = [
     { value: 'salario', label: 'Salário' },
     { value: 'beneficio', label: 'Benefício' },
+  ];
+
+  const visibilidadeOptions = [
+    { value: 'both', label: 'Ambos os modos' },
+    { value: 'preparation', label: 'Só Preparação' },
+    { value: 'living', label: 'Só Morando' },
   ];
 
   return (
@@ -209,6 +217,15 @@ export function GastosSection({ gastos, categorias, onUpdate, onToggle, onAdd, o
                   }}
                 />
               )}
+
+              {/* Visibilidade - em qual modo aparece */}
+              <Select
+                label="Aparece em"
+                value={novoGasto.visibilidade}
+                onChange={(e) => setNovoGasto({ ...novoGasto, visibilidade: e.target.value as GastoVisibilidade })}
+                options={visibilidadeOptions}
+                helperText="Em quais modos este gasto será contabilizado"
+              />
 
               {/* Ativo/Inativo */}
               <div className="flex items-center gap-3 pt-2 pb-1">

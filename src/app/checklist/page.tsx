@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useApp } from '@/components/AppProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +25,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function ChecklistPage() {
   const {
@@ -36,6 +36,12 @@ export default function ChecklistPage() {
     deleteChecklistItem,
     isLoaded,
   } = useApp();
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [dialogNovo, setDialogNovo] = useState(false);
   const [novaDescricao, setNovaDescricao] = useState('');
@@ -81,10 +87,10 @@ export default function ChecklistPage() {
     setEditDescricao('');
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !mounted) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      <div className="flex items-center justify-center min-h-[50vh]" suppressHydrationWarning>
+        <div className="animate-pulse text-muted-foreground" suppressHydrationWarning>Carregando...</div>
       </div>
     );
   }
